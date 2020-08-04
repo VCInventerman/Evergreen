@@ -36,3 +36,5 @@
 .vs
 *.vcxproj
 *.vcxproj.*
+Debug
+x64
