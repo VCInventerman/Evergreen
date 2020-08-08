@@ -1,2 +1,34 @@
 : static member access
 . variable member access
+
+ptr OR * - pointer
+sptr - shared pointer
+uptr - unique pointer
+wptr - weak pointer
+
+compile_const - constant evaluated at compile time
+const - constant evaluated at runtime
+
+code_replace("target", "newtext");
+
+#define
+
+include("code.evg");
+
+libc:malloc
+std:alloc
+cpp:new
+evg:alloc
+
+Types of code compilation
+Compile time compilation
+Update time compilation
+Run time compilation
+
+Category and using() priority
+least: compiler / evg
+included library
+included file
+closest scope first
+
+enum (have to cast from integer) and named (implicity casts from integer)
