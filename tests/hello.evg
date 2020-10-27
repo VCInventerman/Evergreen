@@ -1,0 +1,10 @@
+// Main file
+
+import("simple");
+
+fn main () -> (int)
+{
+	println("Hello World!");
+
+	return(exit:success);
+}

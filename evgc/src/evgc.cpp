@@ -1,4 +1,21 @@
+#pragma warning (disable : 4996)
+#pragma warning (disable : 4146)
+
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_bin_float.hpp>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
@@ -7,444 +24,355 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <chrono>
 
-//===----------------------------------------------------------------------===//
-// Lexer
-//===----------------------------------------------------------------------===//
+#include "adapters/file.h"
 
-// The lexer returns tokens [0-255] if it is an unknown character, otherwise one
-// of these for known things.
-enum Token {
-    tok_eof = -1,
+using namespace evg;
 
-    // commands
-    tok_def = -2,
-    tok_extern = -3,
+using UnicodeChar = uint32_t;
+using Uint = unsigned int;
+using Int = int;
+using Char = unsigned char;
+using Size = size_t;
+enum class Byte : Char {};
 
-    // primary
-    tok_identifier = -4,
-    tok_number = -5
+using Hash = Size; // View as hex
+
+template<typename T>
+class ContiguousRange
+{
+public:
+	T begin;
+	T end;
 };
 
-static std::string IdentifierStr; // Filled in if tok_identifier
-static double NumVal;             // Filled in if tok_number
+template<typename T>
+class ContiguousIterator
+{
+public:
+	T* data;
+	T* end;
+};
 
-/// gettok - Return the next token from standard input.
-static int gettok() {
-    static int LastChar = ' ';
+template<typename T>
+class ContiguousTrackingIterator
+{
+public:
+	T* data;
+	T** end;
+};
 
-    // Skip any whitespace.
-    while (isspace(LastChar))
-        LastChar = getchar();
 
-    if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
-        IdentifierStr = LastChar;
-        while (isalnum((LastChar = getchar())))
-            IdentifierStr += LastChar;
+class CharIterator
+{
+public:
+	Char* point;
 
-        if (IdentifierStr == "def")
-            return tok_def;
-        if (IdentifierStr == "extern")
-            return tok_extern;
-        return tok_identifier;
-    }
+	CharIterator(Char* _point) : point(_point) {}
 
-    if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
-        std::string NumStr;
-        do {
-            NumStr += LastChar;
-            LastChar = getchar();
-        } while (isdigit(LastChar) || LastChar == '.');
+	operator Char* () { return point; }
 
-        NumVal = strtod(NumStr.c_str(), nullptr);
-        return tok_number;
-    }
+	void next(const Char* const end)
+	{
+		point += size(end);
+	}
 
-    if (LastChar == '#') {
-        // Comment until end of line.
-        do
-            LastChar = getchar();
-        while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
+	Uint size(const Char* const end)
+	{
+		if (!(*point & 0b10000000))
+			return 1;
+		else if (*point & 0b11110000)
+			return 4;
+		else if (*point & 0b11100000)
+			return 3;
+		else if (*point & 0b11000000)
+			return 2;
+		else
+			return 0;
+	}
 
-        if (LastChar != EOF)
-            return gettok();
-    }
+	UnicodeChar get(const Char* const end)
+	{
+		UnicodeChar ret = 0;
 
-    // Check for end of file.  Don't eat the EOF.
-    if (LastChar == EOF)
-        return tok_eof;
+		if (!(*point & 0b10000000))
+			ret = *point;
+		else if ((*point & 0b11110000) && (point + 4 <= end))
+			ret = *(UnicodeChar*)point;
+		else if ((*point & 0b11100000) && (point + 3 <= end))
+			std::copy(point, point + 3, &ret);
+		else if ((*point & 0b11000000) && (point + 2 <= end))
+			std::copy(point, point + 2, &ret);
+		else
+			return std::numeric_limits<UnicodeChar>::max();
 
-    // Otherwise, just return the character as its ascii value.
-    int ThisChar = LastChar;
-    LastChar = getchar();
-    return ThisChar;
+		return ret;
+	}
+
+	Char* wholeIdentifier(const Char* const end)
+	{
+
+	}
+
+	bool nextIs(const Char* const end, std::string_view compare)
+	{
+		for (Size i = 0; (i < compare.size()) && (i < end - point) ; ++i)
+		{
+			if (compare[i] != point[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	bool itrUntil(const Char* const end, std::string_view compare)
+	{
+		for (; point < end; ++point)
+		{
+			if (nextIs(end, compare))
+			{
+				point += compare.size() - 1;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool nextNonNum(const Char* const end)
+	{
+		for (; point < end; ++point)
+		{
+			if (!isdigit(*point))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+};
+
+enum LineEnding : Uint
+{
+	unknown = -1,
+	n = 1,
+	rn = 2,
+	r = 3,
+};
+
+class ASTElement
+{
+public:
+	StringView text;
+};
+
+class LiteralIntegerAST : public ASTElement
+{
+public:
+	boost::multiprecision::cpp_int val;
+};
+
+class LiteralFloatAST : public ASTElement
+{
+public:
+	boost::multiprecision::cpp_bin_float_100 val;
+};
+
+class FunctionAST : public ASTElement
+{
+public:
+	
+};
+
+class ClassAST : public ASTElement
+{
+public:
+
+};
+
+class TextFile
+{
+public:
+	File* file;
+
+	LineEnding newline = LineEnding::rn;
+
+	// Create with filesystem path
+	TextFile()
+};
+
+
+
+
+
+
+
+template<typename T, typename BufSize = Size>
+class VectorView
+{
+public:
+	T* data;
+	BufSize size;
+
+
+};
+
+class ReturnCode
+{
+public:
+	Int val;
+
+	enum
+	{
+		Success = 0,
+		Failure = -1
+	};
+
+	operator int () { return val; }
+
+	ReturnCode() : val(Success) {}
+	ReturnCode(const Int _val) : val(_val) {}
+};
+
+class ProgramEnv
+{
+public:
+	VectorView<StringC> args;
+
+	std::chrono::steady_clock::time_point beginTime;
+
+	void setArgs(const Int argc, const Char** argv)
+	{
+		args = { (StringC*)argv, argc };
+	}
+
+	void quit(const ReturnCode code = ReturnCode::Success)
+	{
+		exit(code);
+	}
+};
+
+ProgramEnv thisProgram;
+
+
+
+class CodeFile
+{
+public:
+	TextFile* file;
+
+	std::list<ASTElement*> roots;
+};
+
+// Library
+class Module
+{
+public:
+	Path root;
+
+	// Paths relative to module root mapped to code
+	std::map<Path, CodeFile> files;
+
+	// Read a file without a definition
+	void parse(Path startFile)
+	{
+		files.insert({})
+	}
+};
+
+class EvgCompiler
+{
+public:
+	std::map<ImString, Module> modules;
+
+	Module* primaryModule;
+
+	// Create a native binary using a single path
+	void compileToNative(Path startFile)
+	{
+		primaryModule = new Module;
+		primaryModule->root = startFile.parentPath();
+
+		primaryModule->parse(startFile.filename());
+	}
+};
+
+
+
+
+Int main(Int argc, Char** argv) // Wrapper
+{
+	thisProgram.setArgs(argc, argv);
+	return EvgMain();
 }
 
-//===----------------------------------------------------------------------===//
-// Abstract Syntax Tree (aka Parse Tree)
-//===----------------------------------------------------------------------===//
+Int EvgMain()
+{
+	EvgCompiler compiler;
 
-namespace {
 
-    /// ExprAST - Base class for all expression nodes.
-    class ExprAST {
-    public:
-        virtual ~ExprAST() = default;
-    };
 
-    /// NumberExprAST - Expression class for numeric literals like "1.0".
-    class NumberExprAST : public ExprAST {
-        double Val;
 
-    public:
-        NumberExprAST(double Val) : Val(Val) {}
-    };
+	/*
+	std::ifstream fileRaw("../tests/test.evg", std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
+	Size size = fileRaw.tellg();
+	fileRaw.seekg(std::ifstream::beg);
 
-    /// VariableExprAST - Expression class for referencing a variable, like "a".
-    class VariableExprAST : public ExprAST {
-        std::string Name;
+	std::basic_string<Char, std::char_traits<Char>, std::allocator<Char>> source;
+	source.resize(size);
+	fileRaw.read((char*)source.data(), size);
 
-    public:
-        VariableExprAST(const std::string& Name) : Name(Name) {}
-    };
+	CharIterator cItr = (Char*)&*source.begin();
+	if ((source.size() >= 4) && (source[0] == 0x00) && (source[1] == 0x00) && (source[2] == 0xfe) && (source[3] == 0xff))
+		std::cout << "UTF-32BE is not supported";
+	else if ((source.size() >= 4) && (source[0] == 0xff) && (source[1] == 0xfe) && (source[2] == 0x00) && (source[3] == 0x00))
+		std::cout << "UTF-32LE is not supported";
+	else if ((source.size() >= 3) && (source[0] == 0xef) && (source[1] == 0xbb) && (source[2] == 0xbf))
+	{
+		cItr.point += 3;
+	}
+	else if ((source.size() >= 2) && (source[0] == 0xfe) && (source[1] == 0xff))
+		std::cout << "UTF-16BE is not supported";
+	else if ((source.size() >= 2) && (source[0] == 0xff) && (source[1] == 0xfe))
+		std::cout << "UTF-16LE is not supported";
 
-    /// BinaryExprAST - Expression class for a binary operator.
-    class BinaryExprAST : public ExprAST {
-        char Op;
-        std::unique_ptr<ExprAST> LHS, RHS;
+	for (Char* end = (Char*)&source.back() + 1; cItr < (Char*)&source.back() + 1; cItr.next((Char*)&source.back() + 1), end = (Char*)&source.back() + 1)
+	{
+		UnicodeChar c = cItr.get(end);
 
-    public:
-        BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
-            std::unique_ptr<ExprAST> RHS)
-            : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
-    };
+		switch (c)
+		{
+		case ' ': break;
+		case '\n': break;
+		case '\r': ++cItr.point; break;
 
-    /// CallExprAST - Expression class for function calls.
-    class CallExprAST : public ExprAST {
-        std::string Callee;
-        std::vector<std::unique_ptr<ExprAST>> Args;
+		case '/':
+		{
+			if (cItr.nextIs(end, "//"))
+			{
+				cItr.itrUntil(end, "\r\n");
+			}
+			if (cItr.nextIs(end, "/*"))
+			{
+				//cItr.itrUntil(end, "//"); add back star for this one
+			}
+		}
+		}
 
-    public:
-        CallExprAST(const std::string& Callee,
-            std::vector<std::unique_ptr<ExprAST>> Args)
-            : Callee(Callee), Args(std::move(Args)) {}
-    };
+		if (isdigit(c))
+		{
+			 
+		}
+	}
+	*/
 
-    /// PrototypeAST - This class represents the "prototype" for a function,
-    /// which captures its name, and its argument names (thus implicitly the number
-    /// of arguments the function takes).
-    class PrototypeAST {
-        std::string Name;
-        std::vector<std::string> Args;
 
-    public:
-        PrototypeAST(const std::string& Name, std::vector<std::string> Args)
-            : Name(Name), Args(std::move(Args)) {}
 
-        const std::string& getName() const { return Name; }
-    };
-
-    /// FunctionAST - This class represents a function definition itself.
-    class FunctionAST {
-        std::unique_ptr<PrototypeAST> Proto;
-        std::unique_ptr<ExprAST> Body;
-
-    public:
-        FunctionAST(std::unique_ptr<PrototypeAST> Proto,
-            std::unique_ptr<ExprAST> Body)
-            : Proto(std::move(Proto)), Body(std::move(Body)) {}
-    };
-
-} // end anonymous namespace
-
-//===----------------------------------------------------------------------===//
-// Parser
-//===----------------------------------------------------------------------===//
-
-/// CurTok/getNextToken - Provide a simple token buffer.  CurTok is the current
-/// token the parser is looking at.  getNextToken reads another token from the
-/// lexer and updates CurTok with its results.
-static int CurTok;
-static int getNextToken() { return CurTok = gettok(); }
-
-/// BinopPrecedence - This holds the precedence for each binary operator that is
-/// defined.
-static std::map<char, int> BinopPrecedence;
-
-/// GetTokPrecedence - Get the precedence of the pending binary operator token.
-static int GetTokPrecedence() {
-    if (!isascii(CurTok))
-        return -1;
-
-    // Make sure it's a declared binop.
-    int TokPrec = BinopPrecedence[CurTok];
-    if (TokPrec <= 0)
-        return -1;
-    return TokPrec;
-}
-
-/// LogError* - These are little helper functions for error handling.
-std::unique_ptr<ExprAST> LogError(const char* Str) {
-    fprintf(stderr, "Error: %s\n", Str);
-    return nullptr;
-}
-std::unique_ptr<PrototypeAST> LogErrorP(const char* Str) {
-    LogError(Str);
-    return nullptr;
-}
-
-static std::unique_ptr<ExprAST> ParseExpression();
-
-/// numberexpr ::= number
-static std::unique_ptr<ExprAST> ParseNumberExpr() {
-    auto Result = std::make_unique<NumberExprAST>(NumVal);
-    getNextToken(); // consume the number
-    return std::move(Result);
-}
-
-/// parenexpr ::= '(' expression ')'
-static std::unique_ptr<ExprAST> ParseParenExpr() {
-    getNextToken(); // eat (.
-    auto V = ParseExpression();
-    if (!V)
-        return nullptr;
-
-    if (CurTok != ')')
-        return LogError("expected ')'");
-    getNextToken(); // eat ).
-    return V;
-}
-
-/// identifierexpr
-///   ::= identifier
-///   ::= identifier '(' expression* ')'
-static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
-    std::string IdName = IdentifierStr;
-
-    getNextToken(); // eat identifier.
-
-    if (CurTok != '(') // Simple variable ref.
-        return std::make_unique<VariableExprAST>(IdName);
-
-    // Call.
-    getNextToken(); // eat (
-    std::vector<std::unique_ptr<ExprAST>> Args;
-    if (CurTok != ')') {
-        while (true) {
-            if (auto Arg = ParseExpression())
-                Args.push_back(std::move(Arg));
-            else
-                return nullptr;
-
-            if (CurTok == ')')
-                break;
-
-            if (CurTok != ',')
-                return LogError("Expected ')' or ',' in argument list");
-            getNextToken();
-        }
-    }
-
-    // Eat the ')'.
-    getNextToken();
-
-    return std::make_unique<CallExprAST>(IdName, std::move(Args));
-}
-
-/// primary
-///   ::= identifierexpr
-///   ::= numberexpr
-///   ::= parenexpr
-static std::unique_ptr<ExprAST> ParsePrimary() {
-    switch (CurTok) {
-    default:
-        return LogError("unknown token when expecting an expression");
-    case tok_identifier:
-        return ParseIdentifierExpr();
-    case tok_number:
-        return ParseNumberExpr();
-    case '(':
-        return ParseParenExpr();
-    }
-}
-
-/// binoprhs
-///   ::= ('+' primary)*
-static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
-    std::unique_ptr<ExprAST> LHS) {
-    // If this is a binop, find its precedence.
-    while (true) {
-        int TokPrec = GetTokPrecedence();
-
-        // If this is a binop that binds at least as tightly as the current binop,
-        // consume it, otherwise we are done.
-        if (TokPrec < ExprPrec)
-            return LHS;
-
-        // Okay, we know this is a binop.
-        int BinOp = CurTok;
-        getNextToken(); // eat binop
-
-        // Parse the primary expression after the binary operator.
-        auto RHS = ParsePrimary();
-        if (!RHS)
-            return nullptr;
-
-        // If BinOp binds less tightly with RHS than the operator after RHS, let
-        // the pending operator take RHS as its LHS.
-        int NextPrec = GetTokPrecedence();
-        if (TokPrec < NextPrec) {
-            RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
-            if (!RHS)
-                return nullptr;
-        }
-
-        // Merge LHS/RHS.
-        LHS = std::make_unique<BinaryExprAST>(BinOp, std::move(LHS),
-            std::move(RHS));
-    }
-}
-
-/// expression
-///   ::= primary binoprhs
-///
-static std::unique_ptr<ExprAST> ParseExpression() {
-    auto LHS = ParsePrimary();
-    if (!LHS)
-        return nullptr;
-
-    return ParseBinOpRHS(0, std::move(LHS));
-}
-
-/// prototype
-///   ::= id '(' id* ')'
-static std::unique_ptr<PrototypeAST> ParsePrototype() {
-    if (CurTok != tok_identifier)
-        return LogErrorP("Expected function name in prototype");
-
-    std::string FnName = IdentifierStr;
-    getNextToken();
-
-    if (CurTok != '(')
-        return LogErrorP("Expected '(' in prototype");
-
-    std::vector<std::string> ArgNames;
-    while (getNextToken() == tok_identifier)
-        ArgNames.push_back(IdentifierStr);
-    if (CurTok != ')')
-        return LogErrorP("Expected ')' in prototype");
-
-    // success.
-    getNextToken(); // eat ')'.
-
-    return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
-}
-
-/// definition ::= 'def' prototype expression
-static std::unique_ptr<FunctionAST> ParseDefinition() {
-    getNextToken(); // eat def.
-    auto Proto = ParsePrototype();
-    if (!Proto)
-        return nullptr;
-
-    if (auto E = ParseExpression())
-        return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
-    return nullptr;
-}
-
-/// toplevelexpr ::= expression
-static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
-    if (auto E = ParseExpression()) {
-        // Make an anonymous proto.
-        auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
-            std::vector<std::string>());
-        return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
-    }
-    return nullptr;
-}
-
-/// external ::= 'extern' prototype
-static std::unique_ptr<PrototypeAST> ParseExtern() {
-    getNextToken(); // eat extern.
-    return ParsePrototype();
-}
-
-//===----------------------------------------------------------------------===//
-// Top-Level parsing
-//===----------------------------------------------------------------------===//
-
-static void HandleDefinition() {
-    if (ParseDefinition()) {
-        fprintf(stderr, "Parsed a function definition.\n");
-    }
-    else {
-        // Skip token for error recovery.
-        getNextToken();
-    }
-}
-
-static void HandleExtern() {
-    if (ParseExtern()) {
-        fprintf(stderr, "Parsed an extern\n");
-    }
-    else {
-        // Skip token for error recovery.
-        getNextToken();
-    }
-}
-
-static void HandleTopLevelExpression() {
-    // Evaluate a top-level expression into an anonymous function.
-    if (ParseTopLevelExpr()) {
-        fprintf(stderr, "Parsed a top-level expr\n");
-    }
-    else {
-        // Skip token for error recovery.
-        getNextToken();
-    }
-}
-
-/// top ::= definition | external | expression | ';'
-static void MainLoop() {
-    while (true) {
-        fprintf(stderr, "ready> ");
-        switch (CurTok) {
-        case tok_eof:
-            return;
-        case ';': // ignore top-level semicolons.
-            getNextToken();
-            break;
-        case tok_def:
-            HandleDefinition();
-            break;
-        case tok_extern:
-            HandleExtern();
-            break;
-        default:
-            HandleTopLevelExpression();
-            break;
-        }
-    }
-}
-
-//===----------------------------------------------------------------------===//
-// Main driver code.
-//===----------------------------------------------------------------------===//
-
-int main() {
-    // Install standard binary operators.
-    // 1 is lowest precedence.
-    BinopPrecedence['<'] = 10;
-    BinopPrecedence['+'] = 20;
-    BinopPrecedence['-'] = 20;
-    BinopPrecedence['*'] = 40; // highest.
-
-    // Prime the first token.
-    fprintf(stderr, "ready> ");
-    getNextToken();
-
-    // Run the main "interpreter loop" now.
-    MainLoop();
-
-    return 0;
+	return EXIT_SUCCESS;
 }

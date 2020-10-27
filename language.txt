@@ -15,6 +15,11 @@ code_replace("target", "newtext");
 
 include("code.evg");
 
+libc - c built in
+std - cpp std lib
+cpp - c++ built in
+evg - evergreen built in, std lib
+
 libc:malloc
 std:alloc
 cpp:new

@@ -32,9 +32,10 @@
 *.app
 
 # Visual Studio
-*.sln
+#*.sln
 .vs
-*.vcxproj
-*.vcxproj.*
+vcpkg_installed
+#*.vcxproj
+#*.vcxproj.*
 Debug
 x64
