@@ -16,32 +16,12 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_bin_float.hpp>
 
-#include <algorithm>
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <chrono>
+#include "evglib.h"
 
-#include "adapters/file.h"
 
 using namespace evg;
 
-using UnicodeChar = uint32_t;
-using Uint = unsigned int;
-using Int = int;
-using Char = unsigned char;
-using Size = size_t;
-enum class Byte : Char {};
 
-using Hash = Size; // View as hex
 
 template<typename T>
 class ContiguousRange
@@ -59,21 +39,15 @@ public:
 	T* end;
 };
 
-template<typename T>
-class ContiguousTrackingIterator
-{
-public:
-	T* data;
-	T** end;
-};
 
 
-class CharIterator
+
+class EvgCodeIterator
 {
 public:
 	Char* point;
 
-	CharIterator(Char* _point) : point(_point) {}
+	EvgCodeIterator(Char* _point) : point(_point) {}
 
 	operator Char* () { return point; }
 
@@ -82,7 +56,7 @@ public:
 		point += size(end);
 	}
 
-	Uint size(const Char* const end)
+	UInt size(const Char* const end)
 	{
 		if (!(*point & 0b10000000))
 			return 1;
@@ -158,7 +132,7 @@ public:
 	}
 };
 
-enum LineEnding : Uint
+enum LineEnding : UInt
 {
 	unknown = -1,
 	n = 1,
@@ -204,7 +178,18 @@ public:
 	LineEnding newline = LineEnding::rn;
 
 	// Create with filesystem path
-	TextFile()
+	TextFile(Path path) : file(new DiskFileInMem(path)) 
+	{
+		newline = detectNewline();
+	}
+
+	LineEnding detectNewline()
+	{
+		for (var&& c : *file) //make *file into file
+		{
+
+		}
+	}
 };
 
 
@@ -223,51 +208,20 @@ public:
 
 };
 
-class ReturnCode
-{
-public:
-	Int val;
 
-	enum
-	{
-		Success = 0,
-		Failure = -1
-	};
 
-	operator int () { return val; }
 
-	ReturnCode() : val(Success) {}
-	ReturnCode(const Int _val) : val(_val) {}
-};
-
-class ProgramEnv
-{
-public:
-	VectorView<StringC> args;
-
-	std::chrono::steady_clock::time_point beginTime;
-
-	void setArgs(const Int argc, const Char** argv)
-	{
-		args = { (StringC*)argv, argc };
-	}
-
-	void quit(const ReturnCode code = ReturnCode::Success)
-	{
-		exit(code);
-	}
-};
-
-ProgramEnv thisProgram;
 
 
 
 class CodeFile
 {
 public:
-	TextFile* file;
+	TextFile file;
 
 	std::list<ASTElement*> roots;
+
+	CodeFile(Path path) : file(path) {}
 };
 
 // Library
@@ -282,7 +236,14 @@ public:
 	// Read a file without a definition
 	void parse(Path startFile)
 	{
-		files.insert({})
+		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
+
+		EvgCodeIterator itr = firstFile.first->second.file.file.begin();
+
+		while (itr != firstFile.first->second.file.file.end())
+		{
+
+		}
 	}
 };
 
@@ -301,22 +262,34 @@ public:
 
 		primaryModule->parse(startFile.filename());
 	}
+
+	// Use a single module to create and run a program
+	void compileAndRun(Path startFile)
+	{
+		primaryModule = new Module;
+		primaryModule->root = startFile.parentPath();
+
+		primaryModule->parse(startFile.filename());
+
+	}
 };
 
 
 
 
-Int main(Int argc, Char** argv) // Wrapper
+ProgramEnv::ExitCode main(Int argc, Char** argv) // Wrapper
 {
 	thisProgram.setArgs(argc, argv);
-	return EvgMain();
+	ProgramEnv::ExitCode code = EvgMain();
+	thisProgram.callAtExit();
+	return code;
 }
 
 Int EvgMain()
 {
-	EvgCompiler compiler;
+	//EvgCompiler compiler;
 
-
+	//compiler.compileAndRun("../tests/test.evg");
 
 
 	/*

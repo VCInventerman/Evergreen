@@ -1,6 +1,6 @@
-#include "StringBuf.h"
-#include "StringC.h"
-#include "StringIm.h"
+#include "BufString.h"
+#include "CString.h"
+#include "ImString.h"
 #include "StringFormatter.h"
 
-using String = StringIm;
+using String = ImString;

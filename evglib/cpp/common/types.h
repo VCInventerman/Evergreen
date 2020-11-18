@@ -1,75 +1,146 @@
-#include "simple.h"
+#pragma once
 
-category (evg)
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <fstream>
+#include <chrono>
+#include <iostream>
+#include <ctime>
+#include <functional>
+#include <bitset>
+#include <iterator> 
+#include <regex>
+#include <future>
+#include <exception>
+#include <mutex>
+#include <unordered_map>
+#include <any>
+#include <complex>
+#include <shared_mutex>
+#include <set>
+#include <random>
+
+#define NOMINMAX
+#include <windows.h>
+
+#define category(name) namespace name {} using namespace name; namespace name
+
+#define stack_only
+#define format(encoding) // Binary, hex, etc for debugger
+
+#define compile_const constexpr
+#define view_const const // Cannot be modified by viewer
+//#define const // Will not change
+
+#define var auto
+#define anyvar auto&&
+#define typeof decltype
+#define type using
+
+category(evg)
 {
 	// Class that cannot be used at compile time, indicates when a type is unavailable
 	class InvalidType;
 
 	// Platform defined integer aliases
-	using UShort = unsigned short;
-	using SShort = signed short;
-	using Short = short;
+	type UShort = unsigned short;
+	type SShort = signed short;
+	type Short = short;
 
-	using UInt = unsigned int;
-	using SInt = signed int;
-	using Int = int;
+	type UInt = unsigned int;
+	type SInt = signed int;
+	type Int = int;
 
-	using ULong = unsigned long;
-	using SLong = signed long;
-	using Long = long;
+	type ULong = unsigned long;
+	type SLong = signed long;
+	type Long = long;
 
-	using ULongLong = unsigned long long;
-	using SLongLong = signed long long;
-	using LongLong = long long;
+	type ULongLong = unsigned long long;
+	type SLongLong = signed long long;
+	type LongLong = long long;
+
+	type Float = float;
+	type Double = double;
 
 	// Fixed width integer aliases
-	using U8 = uint8_t;
-	using S8 = int8_t;
-	using I8 = int8_t;
+	type U8 = uint8_t;
+	type S8 = int8_t;
+	type I8 = int8_t;
 
-	using U16 = uint16_t;
-	using S16 = int16_t;
-	using I16 = int16_t;
+	type U16 = uint16_t;
+	type S16 = int16_t;
+	type I16 = int16_t;
 
-	using U32 = uint32_t;
-	using S32 = int32_t;
-	using I32 = int32_t;
+	type U32 = uint32_t;
+	type S32 = int32_t;
+	type I32 = int32_t;
 
-	using U64 = uint64_t;
-	using S64 = int64_t;
-	using I64 = int64_t;
+	type U64 = uint64_t;
+	type S64 = int64_t;
+	type I64 = int64_t;
 
-	using U128 = InvalidType;
-	using S128 = InvalidType;
-	using I128 = InvalidType;
+	type U128 = InvalidType;
+	type S128 = InvalidType;
+	type I128 = InvalidType;
 
 	// Float aliases
-	using F16 = InvalidType;
-	using SF16 = InvalidType;
-	using UF16 = InvalidType;
+	type F16 = InvalidType;
+	type SF16 = InvalidType;
+	type UF16 = InvalidType;
 
-	using F32 = float;
-	using SF32 = float;
-	using UF32 = InvalidType;
+	type F32 = Float;
+	type SF32 = Float;
+	type UF32 = InvalidType;
 
-	using F64 = double;
-	using SF64 = double;
-	using UF64 = InvalidType;
+	type F64 = Double;
+	type SF64 = Double;
+	type UF64 = InvalidType;
 
-	using F128 = InvalidType;
-	using SF128 = InvalidType;
-	using UF128 = InvalidType;
+	type F128 = InvalidType;
+	type SF128 = InvalidType;
+	type UF128 = InvalidType;
 
-	using FloatFast = float;
+	namespace fast
+	{
+		type Int = Int;
+		type Float = Float;
+		type Double = Double;
+
+		type U8 = UInt;
+		type S8 = SInt;
+		type I8 = Int;
+
+		type U16 = UInt;
+		type S16 = SInt;
+		type I16 = Int;
+
+		type U32 = UInt;
+		type S32 = SInt;
+		type I32 = Int;
+	}
+
+	namespace least
+	{
+
+	}
 
 	// Characters
-	using UnicodeChar = uint_fast32_t;
+	type UnicodeChar = fast::U32;
 
-	using UChar = unsigned char;
-	using SChar = signed char;
-	using Char = char;
+	type UChar = unsigned char;
+	type SChar = signed char;
+	type Char = UChar;
 
-	// Platform description
-	using Size = size_t;
-	using PtrNum = uintptr_t;
+	enum class Byte : Char {};
+	type Size = size_t;
+	type PtrNum = uintptr_t;
+	type format(hexadecimal) Hash = Size;
 }

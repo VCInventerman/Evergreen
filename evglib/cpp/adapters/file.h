@@ -23,6 +23,8 @@ namespace evg
 		{
 
 		}
+
+		Path(const char* _raw) : raw(_raw) {}
 	};
 
 	class File
@@ -99,6 +101,94 @@ namespace evg
 		}
 
 		~MemFile() {}
+	};
+
+	class DiskFile : public File
+	{
+	public:
+		std::ifstream file;
+		size_t size;
+		Path path;
+
+		static constexpr std::ios_base::openmode read_mode = std::ios_base::in | std::ios_base::binary | std::ios_base::ate;
+
+		DiskFile() = default;
+		DiskFile(const Path& _path) : path(_path) {}
+
+		cstring_view getName()
+		{
+			return path.generic_u8string().c_str();
+		}
+
+		bool isLoaded() { return file.is_open(); }
+
+		bool load()
+		{
+			if (isLoaded())
+				return true;
+
+			file.open(path, read_mode);
+
+			loadSize();
+
+			return isLoaded();
+		}
+
+		void unload()
+		{
+			file.close();
+		}
+
+		size_t getSize() const
+		{
+			return size;
+		}
+
+		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
+		{
+			file.seekg(_cursor, dir);
+		}
+
+
+		void read(char buf[], const size_t size)
+		{
+			file.read(buf, size);
+		}
+		char* readAll(size_t& _size)
+		{
+			_size = size;
+			char* buf = new char[size];
+			read(buf, size);
+			return buf;
+		}
+		void write(const char buf[], const size_t size) { throw std::exception("Attempting write to read-only view of disk file!"); }
+
+		void loadSize()
+		{
+			size = file.tellg();
+			file.seekg(0, std::ios::beg);
+		}
+
+
+		static char* readFileToBuf(const Path _path, size_t& size)
+		{
+			std::ifstream file(_path, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
+			size = file.tellg();
+			file.seekg(0, std::ios::beg);
+
+			char* buf = new char[size];
+
+			if (file.read(buf, size))
+			{
+				return buf;
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+
+		~DiskFile() {}
 	};
 
 	class DiskFileView : public File
@@ -189,4 +279,100 @@ namespace evg
 		~DiskFileView() {}
 	};
 
+	class DiskFileInMem : public File
+	{
+	public:
+		std::ifstream file;
+		size_t size;
+		Path path;
+		Byte* data;
+
+		static constexpr std::ios_base::openmode read_mode = std::ios_base::in | std::ios_base::binary | std::ios_base::ate;
+
+		DiskFileView() = default;
+		DiskFileView(const Path& _path) : path(_path) {}
+
+		cstring_view getName()
+		{
+			return path.generic_u8string().c_str();
+		}
+
+		bool isLoaded() { return file.is_open(); }
+
+		bool load()
+		{
+			if (isLoaded())
+				return true;
+
+			file.open(path, read_mode);
+
+			loadSize();
+
+			return isLoaded();
+		}
+
+		void unload()
+		{
+			file.close();
+		}
+
+		size_t getSize() const
+		{
+			return size;
+		}
+
+		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
+		{
+			file.seekg(_cursor, dir);
+		}
+
+
+		void read(char buf[], const size_t size)
+		{
+			file.read(buf, size);
+		}
+		char* readAll(size_t& _size)
+		{
+			_size = size;
+			char* buf = new char[size];
+			read(buf, size);
+			return buf;
+		}
+		void write(const char buf[], const size_t size) { throw std::exception("Attempting write to read-only view of disk file!"); }
+
+		void loadSize()
+		{
+			size = file.tellg();
+			file.seekg(0, std::ios::beg);
+		}
+
+
+		static char* readFileToBuf(const Path _path, size_t& size)
+		{
+			std::ifstream file(_path, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
+			size = file.tellg();
+			file.seekg(0, std::ios::beg);
+
+			char* buf = new char[size];
+
+			if (file.read(buf, size))
+			{
+				return buf;
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+
+
+
+		~DiskFileView() {}
+	};
+
+
+	class MemMapFile : public File
+	{
+
+	};
 }

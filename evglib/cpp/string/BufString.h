@@ -1,5 +1,3 @@
-#include "../common/types.h"
-
 template<Size stackAlloc = 16>
 class StringBuf
 {
@@ -7,7 +5,7 @@ public:
 	Char* begin;
 	Char* end;
 
-	stackOnly Char smallString[stackAlloc];
+	stack_only Char smallString[stackAlloc];
 };
 
 class StringView
