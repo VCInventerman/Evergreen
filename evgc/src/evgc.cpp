@@ -23,12 +23,21 @@ using namespace evg;
 
 
 
-template<typename T>
+template <typename T>
 class ContiguousRange
 {
 public:
 	T begin;
 	T end;
+};
+
+template <int begin, int end, typename CountT = int>
+class RangeT
+{
+public:
+
+
+	Range()
 };
 
 template<typename T>

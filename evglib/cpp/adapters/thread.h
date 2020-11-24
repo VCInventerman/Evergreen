@@ -1,13 +1,10 @@
 #pragma once
 
-#include <exception>
-#include <cstdint>
-#include <vector>
-
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/dispatch.hpp>
 
-#include "core/common/logging.h"
+// Thread pool
+//todo: create more threads for waiting-heavy tasks, custom context
 
 namespace bgl
 {
@@ -23,7 +20,7 @@ namespace bgl
 			}
 			catch (std::exception& e)
 			{
-				errorLog << "Error in worker thread: " << std::string(e.what());
+				std::cerr << "Error in worker thread: " << std::string(e.what()) << "\n";
 			}
 		}
 	}
@@ -57,7 +54,7 @@ namespace bgl
 			{
 				threads.push_back(std::thread(runWorkerThread, &context));
 
-				// Give worker threads a lower priority so that the main and render threads work faster
+				// Give worker threads a lower priority
 #ifdef _WIN32
 				SetThreadPriority(threads.back().native_handle(), -1);
 #else
@@ -71,7 +68,7 @@ namespace bgl
 			}
 
 			if (threads.size() > 0) { active = true; }
-			else { fatalLog << "Unable to create worker thread!"; }
+			else { std::cerr << "Unable to create worker thread!\n"; }
 		}
 
 		void stop()

@@ -1,7 +1,8 @@
-#include <atomic>
+#pragma once
 
 // Immutable string
 
+#pragma warning( disable : 4200 )
 class ImStringElem
 {
 public:
@@ -14,7 +15,16 @@ public:
 	Char data[];
 };
 
-template <typename RetT, typename ErrorT = CString>
+
+class CString;
+
+class Error
+{
+public:
+	CString msg;
+};
+
+template <typename RetT, typename ErrorT = Error>
 class RetPair
 {
 	RetT val;
@@ -51,24 +61,8 @@ public:
 
 };
 
-template <typename T>
-class Iterator
-{
-public:
-	void next();
-
-};
-
-template <>
-class Iterator <ImString>
-{
-public:
-	ImString::
-
-};
-
 template <typename CharT = Char>
-class ImString
+class ImStringBase
 {
 	ImStringElem* source;
 

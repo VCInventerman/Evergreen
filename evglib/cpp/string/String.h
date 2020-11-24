@@ -3,4 +3,7 @@
 #include "ImString.h"
 #include "StringFormatter.h"
 
+
+using ImString = ImStringBase<>;
+
 using String = ImString;

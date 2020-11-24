@@ -1,5 +1,7 @@
+#pragma once
+
 template<Size stackAlloc = 16>
-class StringBuf
+class BufString
 {
 public:
 	Char* begin;

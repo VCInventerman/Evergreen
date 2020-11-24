@@ -27,14 +27,19 @@
 #include <shared_mutex>
 #include <set>
 #include <random>
+#include <thread>
+#include <string_view>
+#include <atomic>
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 
 #define category(name) namespace name {} using namespace name; namespace name
 
 #define stack_only
-#define format(encoding) // Binary, hex, etc for debugger
+#define binary_rep(encoding) // Binary, hex, etc for debugger
 
 #define compile_const constexpr
 #define view_const const // Cannot be modified by viewer
@@ -142,5 +147,21 @@ category(evg)
 	enum class Byte : Char {};
 	type Size = size_t;
 	type PtrNum = uintptr_t;
-	type format(hexadecimal) Hash = Size;
+	type binary_rep(hexadecimal) Hash = Size;
+
+	using VoidFun = void(*)();
+
+	/*
+	enum
+	{
+		direct,
+		virtual	
+	};
+
+	enum
+	{
+		sync,
+		async
+	};
+	*/
 }
