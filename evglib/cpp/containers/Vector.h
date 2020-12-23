@@ -1,10 +1,29 @@
 #pragma once
 
-#include "types.h"
+#include "../common/types.h"
+#include "../common/ContiguousBuf.h"
 
-template <typename T, typename TSize = Size>
+//todo: interfaces: ex. Vector implements Array
+//todo: template by whether or not vector owns memory instead of appending View
+
+
+
+template <typename T>
 class Vector
 {
-	TSize size;
-	T*
+public:
+	ContiguousBufPtrEnd<T> data;
+
+	Vector() = default;
+	Vector(const ContiguousBufPtrEnd<T>& _data) : data(_data) {}
+};
+
+template <typename T>
+class VectorView
+{
+public:
+	ContiguousBufPtrEnd<T> data;
+
+	VectorView() = default;
+	VectorView(const ContiguousBufPtrEnd<T>& _data) : data(_data) {}
 };

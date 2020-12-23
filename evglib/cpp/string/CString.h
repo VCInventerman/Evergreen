@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common/types.h"
+
 // String that is terminated through a null character
 class CString
 {
@@ -7,7 +9,8 @@ public:
 	char* data;
 
 	CString() = default;
-	CString(char* const _data) : data(_data) {}
+	CString(const char* const _data) : data(const_cast<char*>(_data)) {}
+	CString(char* const _data) : data(const_cast<char*>(_data)) {}
 
 	inline operator char* () const { return data; }
 	explicit operator std::string_view() const { return std::string_view(data, size()); }

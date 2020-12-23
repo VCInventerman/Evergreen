@@ -1,10 +1,175 @@
 #pragma once
 
-#include <filesystem>
-#include <fstream>
+#include "../common/types.h"
 
-#include "string/string.h"
+#include "../string/String.h"
 
+/*
+A copy of a file in memory that can watch it and be committed back
+An adapter to the OS file that can read() and write() regions
+A memmapped file	MappedFile
+*/
+
+namespace evg
+{
+	// Paths are internally stored as UTF-8 unix paths
+	//todo: force trailing slash on directories
+	class Path
+	{
+	public:
+		String raw;
+
+		// Returns everything after the last /
+		ImString filename()
+		{
+			var lastSlash = raw.rfind('/');
+			Size size = raw.end() - lastSlash - 1;
+			ContiguousBufPtrEnd<Char> str(size);
+			std::copy(lastSlash + 1, raw.end(), str.begin());
+			return String((Char*)(&*str.begin()));
+		}
+
+		// Returns everything up to, and including, the last slash
+		//todo: better syntax for std::copy, like [begin,end) but in this case [begin,end]
+		ImString parentPath()
+		{
+			var lastSlash = raw.rfind('/');
+			Size size = lastSlash - raw.begin() + 1; // Capture last slash
+			ContiguousBufPtrEnd<Char> str(size);
+			std::copy(raw.begin(), lastSlash + 1, str.begin());
+			return String((Char*)(&*str.begin()));
+		}
+
+		Path() = default;
+		Path(const String _raw) : raw(_raw) {}
+		Path(const Char* const _raw) : raw(_raw) {}
+
+		operator char* ()
+		{
+			return raw;
+		}
+
+		bool operator< (const Path& rhs) const { return raw < rhs.raw; }
+	};
+
+
+	class File
+	{
+	public:
+		// constructor () -> ()
+		// constructor (Path _path) -> ()
+
+		virtual String getName() = 0;
+
+		virtual bool isLoaded() = 0;
+		virtual bool load() = 0;
+		virtual void unload() = 0;
+
+		virtual size_t getSize() const = 0;
+
+		virtual void seek(const size_t _cursor, const std::ios_base::seekdir dir) = 0;
+
+		virtual void read(char buf[], const size_t size) = 0;
+		virtual char* readAll(size_t& _size) = 0;
+		virtual void write(const char buf[], const size_t size) = 0;
+
+		virtual Char* begin() = 0;
+		virtual Char* end() = 0;
+
+		virtual ~File() = 0 {};
+	};
+
+
+	class MemFile : public File
+	{
+	public:
+		char* data = nullptr;
+		size_t size = 0;
+		size_t cursor = 0;
+
+		Path path;
+		std::ifstream file;
+
+		MemFile() = default;
+		MemFile(Path _path) : path(_path), file(_path, std::ios::binary)
+		{
+			load();
+		}
+
+		~MemFile()
+		{
+			delete data;
+		}
+
+		String getName()
+		{
+			return String((Char*)"MemFile");
+		}
+
+		bool isLoaded() { return true; }
+		bool load()
+		{ 
+			size = std::filesystem::file_size(std::filesystem::path(path.raw.operator char *()));
+			data = (char*)malloc(size);
+			file.read(data, size);
+
+			return true;
+		}
+		void unload() {}
+
+		size_t getSize() const { return size; }
+
+		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
+		{
+			switch (dir)
+			{
+			case std::ios::beg:
+			{
+				cursor = _cursor;
+			}
+			case std::ios::cur:
+			{
+				cursor += _cursor;
+			}
+			case std::ios::end:
+			{
+				cursor = size - _cursor;
+			}
+			}
+		}
+
+		void read(char buf[], const size_t size)
+		{
+			std::copy(data + cursor, data + cursor + size, buf);
+		}
+		char* readAll(size_t& _size)
+		{
+			_size = size;
+			char* buf = new char[size];
+			std::copy(data, data + size, buf);
+			return buf;
+		}
+		void write(const char buf[], const size_t size)
+		{
+			std::copy(buf, buf + size, data + cursor);
+		}
+
+		Char* begin()
+		{
+			return (Char*)data;
+		}
+		Char* end()
+		{
+			return (Char*)data + size;
+		}
+	};
+
+}
+
+
+
+
+/*
 namespace evg
 {
 	// Paths are internally stored as UTF-8 unix paths
@@ -376,3 +541,4 @@ namespace evg
 
 	};
 }
+*/

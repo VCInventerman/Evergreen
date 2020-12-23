@@ -139,11 +139,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cpp\common\alloc.h" />
+    <ClInclude Include="cpp\common\ContiguousBuf.h" />
+    <ClInclude Include="cpp\common\cppstd.h" />
     <ClInclude Include="cpp\common\pointer.h" />
     <ClInclude Include="cpp\common\ProgramEnv.h" />
     <ClInclude Include="cpp\common\types.h" />
     <ClInclude Include="cpp\containers\Vector.h" />
     <ClInclude Include="cpp\evglib.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="evg\unit.evg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

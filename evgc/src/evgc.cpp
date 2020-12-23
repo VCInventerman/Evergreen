@@ -21,32 +21,9 @@
 
 using namespace evg;
 
+//todo: allow class member names to override language keywords
 
 
-template <typename T>
-class ContiguousRange
-{
-public:
-	T begin;
-	T end;
-};
-
-template <int begin, int end, typename CountT = int>
-class RangeT
-{
-public:
-
-
-	Range()
-};
-
-template<typename T>
-class ContiguousIterator
-{
-public:
-	T* data;
-	T* end;
-};
 
 
 
@@ -54,43 +31,63 @@ public:
 class EvgCodeIterator
 {
 public:
-	Char* point;
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type = UnicodeChar;
+	using difference_type = std::ptrdiff_t;
+	using pointer = Char*;
+	using reference = Char&;
 
-	EvgCodeIterator(Char* _point) : point(_point) {}
+	Char* ptr;
 
-	operator Char* () { return point; }
+	//operator Char* () { return point; }
+	//Char& operator* () { return *ptr; }
 
-	void next(const Char* const end)
+	//bool operator== (const EvgCodeIterator& rhs) const { return ptr == rhs.ptr; }
+	//bool operator!= (const EvgCodeIterator& rhs) const { return !(*this == rhs); }
+
+
+	EvgCodeIterator(Char* const _ptr) : ptr(_ptr) {}
+
+	EvgCodeIterator& operator++ () { ptr += size(); return *this; }
+	EvgCodeIterator operator++ (int) { EvgCodeIterator ret = *this; ++(*this); return ret; }
+
+	EvgCodeIterator& operator-- () { --ptr; return *this; }
+	EvgCodeIterator operator-- (int) { EvgCodeIterator ret = *this; --(*this); return ret; }
+
+	bool operator==(EvgCodeIterator lhs) const { return ptr == lhs.ptr; }
+	bool operator!=(EvgCodeIterator lhs) const { return !(*this == lhs); }
+
+	I64 operator-(const EvgCodeIterator& rhs) const { return ptr - rhs.ptr; }
+	I64 operator+(const EvgCodeIterator& rhs) const { return ptr + rhs.ptr; }
+
+	UnicodeChar operator*() { return get(); }
+
+	UInt size()
 	{
-		point += size(end);
-	}
-
-	UInt size(const Char* const end)
-	{
-		if (!(*point & 0b10000000))
+		if (!(*ptr & 0b10000000))
 			return 1;
-		else if (*point & 0b11110000)
+		else if (*ptr & 0b11110000)
 			return 4;
-		else if (*point & 0b11100000)
+		else if (*ptr & 0b11100000)
 			return 3;
-		else if (*point & 0b11000000)
+		else if (*ptr & 0b11000000)
 			return 2;
 		else
 			return 0;
 	}
 
-	UnicodeChar get(const Char* const end)
+	UnicodeChar get()
 	{
 		UnicodeChar ret = 0;
 
-		if (!(*point & 0b10000000))
-			ret = *point;
-		else if ((*point & 0b11110000) && (point + 4 <= end))
-			ret = *(UnicodeChar*)point;
-		else if ((*point & 0b11100000) && (point + 3 <= end))
-			std::copy(point, point + 3, &ret);
-		else if ((*point & 0b11000000) && (point + 2 <= end))
-			std::copy(point, point + 2, &ret);
+		if (!(*ptr & 0b10000000))
+			ret = *ptr;
+		else if (*ptr & 0b11110000)
+			ret = *(UnicodeChar*)ptr;
+		else if (*ptr & 0b11100000)
+			std::copy(ptr, ptr + 3, &ret);
+		else if (*ptr & 0b11000000)
+			std::copy(ptr, ptr + 2, &ret);
 		else
 			return std::numeric_limits<UnicodeChar>::max();
 
@@ -104,9 +101,9 @@ public:
 
 	bool nextIs(const Char* const end, std::string_view compare)
 	{
-		for (Size i = 0; (i < compare.size()) && (i < end - point) ; ++i)
+		for (Size i = 0; (i < compare.size()) && (i < end - ptr) ; ++i)
 		{
-			if (compare[i] != point[i])
+			if (compare[i] != ptr[i])
 				return false;
 		}
 
@@ -115,11 +112,11 @@ public:
 
 	bool itrUntil(const Char* const end, std::string_view compare)
 	{
-		for (; point < end; ++point)
+		for (; ptr < end; ++ptr)
 		{
 			if (nextIs(end, compare))
 			{
-				point += compare.size() - 1;
+				ptr += compare.size() - 1;
 				return true;
 			}
 		}
@@ -129,9 +126,9 @@ public:
 
 	bool nextNonNum(const Char* const end)
 	{
-		for (; point < end; ++point)
+		for (; ptr < end; ++ptr)
 		{
-			if (!isdigit(*point))
+			if (!isdigit(*ptr))
 			{
 				return true;
 			}
@@ -141,7 +138,7 @@ public:
 	}
 };
 
-enum LineEnding : UInt
+enum class LineEnding : UInt
 {
 	unknown = -1,
 	n = 1,
@@ -149,6 +146,8 @@ enum LineEnding : UInt
 	r = 3,
 };
 
+
+/*
 class ASTElement
 {
 public:
@@ -167,17 +166,124 @@ public:
 	boost::multiprecision::cpp_bin_float_100 val;
 };
 
+class LiteralStringAST : public ASTElement
+{
+public:
+	ImString value;
+};
+
+class ExprAST {
+public:
+	virtual ~ExprAST() = default;
+
+	//virtual Value* codegen() = 0;
+};
+
 class FunctionAST : public ASTElement
 {
 public:
 	
 };
 
+class ClassMemberAST : public ASTElement
+{
+public:
+	ClassAST* mtype;
+
+	ExprAST* defaultVal; // Equivalent to using "mem = defaultVal" in constructor (copy or move)
+};
+
 class ClassAST : public ASTElement
 {
 public:
+	ImString name;
 
+	std::map<ImString, ClassMemberAST> members;
 };
+*/
+
+/// ExprAST - Base class for all expression nodes.
+class ExprAST {
+public:
+	virtual ~ExprAST() = default;
+
+	virtual llvm::Value* codegen() = 0;
+};
+
+/// NumberExprAST - Expression class for numeric literals like "1.0".
+class NumberExprAST : public ExprAST {
+	double Val;
+
+public:
+	NumberExprAST(double Val) : Val(Val) {}
+
+	llvm::Value* codegen() override;
+};
+
+/// VariableExprAST - Expression class for referencing a variable, like "a".
+class VariableExprAST : public ExprAST {
+	std::string Name;
+
+public:
+	VariableExprAST(const std::string& Name) : Name(Name) {}
+
+	llvm::Value* codegen() override;
+};
+
+/// BinaryExprAST - Expression class for a binary operator.
+class BinaryExprAST : public ExprAST {
+	char Op;
+	std::unique_ptr<ExprAST> LHS, RHS;
+
+public:
+	BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
+		std::unique_ptr<ExprAST> RHS)
+		: Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+
+	llvm::Value* codegen() override;
+};
+
+/// CallExprAST - Expression class for function calls.
+class CallExprAST : public ExprAST {
+	std::string Callee;
+	std::vector<std::unique_ptr<ExprAST>> Args;
+
+public:
+	CallExprAST(const std::string& Callee,
+		std::vector<std::unique_ptr<ExprAST>> Args)
+		: Callee(Callee), Args(std::move(Args)) {}
+
+	llvm::Value* codegen() override;
+};
+
+/// PrototypeAST - This class represents the "prototype" for a function,
+/// which captures its name, and its argument names (thus implicitly the number
+/// of arguments the function takes).
+class PrototypeAST {
+	std::string Name;
+	std::vector<std::string> Args;
+
+public:
+	PrototypeAST(const std::string& Name, std::vector<std::string> Args)
+		: Name(Name), Args(std::move(Args)) {}
+
+	llvm::Function* codegen();
+	const std::string& getName() const { return Name; }
+};
+
+/// FunctionAST - This class represents a function definition itself.
+class FunctionAST {
+	std::unique_ptr<PrototypeAST> Proto;
+	std::unique_ptr<ExprAST> Body;
+
+public:
+	FunctionAST(std::unique_ptr<PrototypeAST> Proto,
+		std::unique_ptr<ExprAST> Body)
+		: Proto(std::move(Proto)), Body(std::move(Body)) {}
+
+	llvm::Function* codegen();
+};
+
 
 class TextFile
 {
@@ -187,35 +293,24 @@ public:
 	LineEnding newline = LineEnding::rn;
 
 	// Create with filesystem path
-	TextFile(Path path) : file(new DiskFileInMem(path)) 
+	TextFile(Path path) : file(new MemFile(path))
 	{
 		newline = detectNewline();
 	}
 
 	LineEnding detectNewline()
 	{
-		for (var&& c : *file) //make *file into file
+		for (anyvar c : *file) //make *file into file
 		{
-
+			
 		}
+
+		return LineEnding::rn;
 	}
 };
 
 
 
-
-
-
-
-template<typename T, typename BufSize = Size>
-class VectorView
-{
-public:
-	T* data;
-	BufSize size;
-
-
-};
 
 
 
@@ -228,7 +323,7 @@ class CodeFile
 public:
 	TextFile file;
 
-	std::list<ASTElement*> roots;
+	std::list<ExprAST*> roots;
 
 	CodeFile(Path path) : file(path) {}
 };
@@ -247,11 +342,12 @@ public:
 	{
 		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
 
-		EvgCodeIterator itr = firstFile.first->second.file.file.begin();
+		EvgCodeIterator itr = firstFile.first->second.file.file->begin();
 
-		while (itr != firstFile.first->second.file.file.end())
+		while (itr != firstFile.first->second.file.file->end())
 		{
-
+			std::cout << *itr << '\n';
+			++itr;
 		}
 	}
 };
@@ -269,7 +365,7 @@ public:
 		primaryModule = new Module;
 		primaryModule->root = startFile.parentPath();
 
-		primaryModule->parse(startFile.filename());
+		primaryModule->parse(startFile);
 	}
 
 	// Use a single module to create and run a program
@@ -278,7 +374,7 @@ public:
 		primaryModule = new Module;
 		primaryModule->root = startFile.parentPath();
 
-		primaryModule->parse(startFile.filename());
+		primaryModule->parse(startFile);
 
 	}
 };
@@ -286,19 +382,11 @@ public:
 
 
 
-ProgramEnv::ExitCode main(Int argc, Char** argv) // Wrapper
+ProgramEnv::ExitCode EvgMain()
 {
-	thisProgram.setArgs(argc, argv);
-	ProgramEnv::ExitCode code = EvgMain();
-	thisProgram.callAtExit();
-	return code;
-}
+	EvgCompiler compiler;
 
-Int EvgMain()
-{
-	//EvgCompiler compiler;
-
-	//compiler.compileAndRun("../tests/test.evg");
+	compiler.compileAndRun((Char*)"../tests/test.evg");
 
 
 	/*
@@ -356,5 +444,5 @@ Int EvgMain()
 
 
 
-	return EXIT_SUCCESS;
+	return ProgramEnv::ExitCode::Success();
 }

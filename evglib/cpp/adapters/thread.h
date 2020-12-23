@@ -3,8 +3,10 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/dispatch.hpp>
 
+#include "../common/types.h"
+
 // Thread pool
-//todo: create more threads for waiting-heavy tasks, custom context
+//todo: create more threads for waiting-heavy tasks based on suppied magnitude of time, custom context
 
 namespace bgl
 {

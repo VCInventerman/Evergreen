@@ -1,40 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <cstdint>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
-#include <iostream>
-#include <ctime>
-#include <functional>
-#include <bitset>
-#include <iterator> 
-#include <regex>
-#include <future>
-#include <exception>
-#include <mutex>
-#include <unordered_map>
-#include <any>
-#include <complex>
-#include <shared_mutex>
-#include <set>
-#include <random>
-#include <thread>
-#include <string_view>
-#include <atomic>
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#include "cppstd.h"
 
 #define category(name) namespace name {} using namespace name; namespace name
 
@@ -152,16 +118,63 @@ category(evg)
 	using VoidFun = void(*)();
 
 	/*
+
+	// Virtual function
 	enum
 	{
 		direct,
 		virtual	
 	};
 
+	// Encoding
+	enum
+	{
+		hexadecimal,
+		ascii,
+		utf8,
+		ebcdic
+	}
+
+	// Automatic threading policy
 	enum
 	{
 		sync,
 		async
 	};
+
+	// Atomicity
+	enum
+	{
+		nonatomic,
+		atomoic
+	};
+
+	enum
+	{
+		aliasing,
+		nonaliasing
+	};
+
+	enum
+	{
+		const, // Variable cannot be changed ever
+
+	}
+
+	enum
+	{
+		owning, // Caller is allowed to modify resource
+		viewing // Points to a resource that cannot be modified by *this* function
+	};
+
+	anyone can modify - mutable
+	i cannot modify - viewing
+	you cannot modify - owning
+	no one can modify - immutable
+
+
+
+
+	
 	*/
 }

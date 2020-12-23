@@ -30,5 +30,17 @@
     <ClInclude Include="cpp\containers\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cpp\common\cppstd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\common\alloc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\common\ContiguousBuf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="evg\unit.evg" />
   </ItemGroup>
 </Project>

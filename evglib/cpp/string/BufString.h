@@ -1,13 +1,16 @@
 #pragma once
 
-template<Size stackAlloc = 16>
+#include "../common/types.h"
+#include "../common/alloc.h"
+#include "../common/ContiguousBuf.h"
+
+template <typename CharT = Char, typename AllocatorT = CLibAllocator>
 class BufString
 {
 public:
-	Char* begin;
-	Char* end;
+	ContiguousBufPtrEnd<Char> data;
 
-	stack_only Char smallString[stackAlloc];
+	//stack_only Char smallString[stackAlloc];
 };
 
 class StringView
