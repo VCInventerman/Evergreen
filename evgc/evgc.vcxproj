@@ -22,6 +22,7 @@
     <ClCompile Include="src\evgc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\EvgCodeIterator.h" />
     <ClInclude Include="include\llvmToy.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -78,25 +79,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;D:\dev\llvm-project\llvm\include;D:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
-    <LibraryPath>D:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>E:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;D:\dev\llvm-project\llvm\include;D:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;D:\dev\llvm-project\llvm\include;D:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
-    <LibraryPath>D:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>D:\dev\llvm-project\build\Debug\bin;$(ExecutablePath)</ExecutablePath>
+    <LibraryPath>E:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>E:\dev\llvm-project\build\Debug\bin;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;D:\dev\llvm-project\llvm\include;D:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\cpp;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

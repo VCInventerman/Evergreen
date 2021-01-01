@@ -110,8 +110,9 @@ namespace evg
 		bool load()
 		{ 
 			size = std::filesystem::file_size(std::filesystem::path(path.raw.operator char *()));
-			data = (char*)malloc(size);
+			data = (char*)malloc(size + 1);
 			file.read(data, size);
+			data[size] = '\0';
 
 			return true;
 		}

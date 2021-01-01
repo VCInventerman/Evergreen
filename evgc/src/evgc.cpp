@@ -18,125 +18,12 @@
 
 #include "evglib.h"
 
+#include "EvgCodeIterator.h"
 
 using namespace evg;
 
 //todo: allow class member names to override language keywords
 
-
-
-
-
-
-class EvgCodeIterator
-{
-public:
-	using iterator_category = std::random_access_iterator_tag;
-	using value_type = UnicodeChar;
-	using difference_type = std::ptrdiff_t;
-	using pointer = Char*;
-	using reference = Char&;
-
-	Char* ptr;
-
-	//operator Char* () { return point; }
-	//Char& operator* () { return *ptr; }
-
-	//bool operator== (const EvgCodeIterator& rhs) const { return ptr == rhs.ptr; }
-	//bool operator!= (const EvgCodeIterator& rhs) const { return !(*this == rhs); }
-
-
-	EvgCodeIterator(Char* const _ptr) : ptr(_ptr) {}
-
-	EvgCodeIterator& operator++ () { ptr += size(); return *this; }
-	EvgCodeIterator operator++ (int) { EvgCodeIterator ret = *this; ++(*this); return ret; }
-
-	EvgCodeIterator& operator-- () { --ptr; return *this; }
-	EvgCodeIterator operator-- (int) { EvgCodeIterator ret = *this; --(*this); return ret; }
-
-	bool operator==(EvgCodeIterator lhs) const { return ptr == lhs.ptr; }
-	bool operator!=(EvgCodeIterator lhs) const { return !(*this == lhs); }
-
-	I64 operator-(const EvgCodeIterator& rhs) const { return ptr - rhs.ptr; }
-	I64 operator+(const EvgCodeIterator& rhs) const { return ptr + rhs.ptr; }
-
-	UnicodeChar operator*() { return get(); }
-
-	UInt size()
-	{
-		if (!(*ptr & 0b10000000))
-			return 1;
-		else if (*ptr & 0b11110000)
-			return 4;
-		else if (*ptr & 0b11100000)
-			return 3;
-		else if (*ptr & 0b11000000)
-			return 2;
-		else
-			return 0;
-	}
-
-	UnicodeChar get()
-	{
-		UnicodeChar ret = 0;
-
-		if (!(*ptr & 0b10000000))
-			ret = *ptr;
-		else if (*ptr & 0b11110000)
-			ret = *(UnicodeChar*)ptr;
-		else if (*ptr & 0b11100000)
-			std::copy(ptr, ptr + 3, &ret);
-		else if (*ptr & 0b11000000)
-			std::copy(ptr, ptr + 2, &ret);
-		else
-			return std::numeric_limits<UnicodeChar>::max();
-
-		return ret;
-	}
-
-	Char* wholeIdentifier(const Char* const end)
-	{
-
-	}
-
-	bool nextIs(const Char* const end, std::string_view compare)
-	{
-		for (Size i = 0; (i < compare.size()) && (i < end - ptr) ; ++i)
-		{
-			if (compare[i] != ptr[i])
-				return false;
-		}
-
-		return true;
-	}
-
-	bool itrUntil(const Char* const end, std::string_view compare)
-	{
-		for (; ptr < end; ++ptr)
-		{
-			if (nextIs(end, compare))
-			{
-				ptr += compare.size() - 1;
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	bool nextNonNum(const Char* const end)
-	{
-		for (; ptr < end; ++ptr)
-		{
-			if (!isdigit(*ptr))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-};
 
 enum class LineEnding : UInt
 {
@@ -207,15 +94,15 @@ class ExprAST {
 public:
 	virtual ~ExprAST() = default;
 
-	virtual llvm::Value* codegen() = 0;
+	virtual llvm::Value* codegen() {};// = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
 class NumberExprAST : public ExprAST {
-	double Val;
+	LongLong Val;
 
 public:
-	NumberExprAST(double Val) : Val(Val) {}
+	NumberExprAST(Int Val) : Val(Val) {}
 
 	llvm::Value* codegen() override;
 };
@@ -288,7 +175,7 @@ public:
 class TextFile
 {
 public:
-	File* file;
+	MemFile* file;
 
 	LineEnding newline = LineEnding::rn;
 
@@ -310,7 +197,11 @@ public:
 };
 
 
-
+template<typename First, typename ... T>
+bool isIn(First&& first, T && ... t)
+{
+	return ((first == t) || ...);
+}
 
 
 
@@ -337,19 +228,511 @@ public:
 	// Paths relative to module root mapped to code
 	std::map<Path, CodeFile> files;
 
+	enum class Symbol
+	{
+		End = 256,
+		Identifier,
+		Number,
+		Function,
+		Type,
+
+		Semicolon,
+		LParen,
+		RParen,
+
+		PostIncrement,
+		PostDecrement,
+		Call,
+		Subscript,
+		GetMember,
+
+		PreIncrement,
+		PreDecrement,
+		UnaryPlus,
+		UnaryMinus,
+		LogicalNOT,
+		BitwiseNOT,
+		SimpleCast,
+		Defererence,
+		AddressOf,
+
+		Multiply,
+		Divide,
+		Remainder,
+
+		Add,
+		Sub,
+
+		BitwiseLShift,
+		BitwiseRShift,
+
+		ThreeWayCompare,
+
+		LessThan,
+		GreaterThan,
+		LessOrEqual,
+		GreaterOrEqual,
+
+		Equal,
+		Inequal,
+
+		BitwiseAND,
+		
+		BitwiseXOR,
+
+		BitwiseOR,
+
+		LogicalAND,
+		
+		LogicalOR,
+
+		Ternary,
+		Assign,
+		AssignAdd,
+		AssignSub,
+		AssignMultiply,
+		AssignDivide,
+		AssignRemainder,
+		AssignBitwiseLShift,
+		AssignBitwiseRShift,
+		AssignBitwiseAND,
+		AssignBitwiseXOR,
+		AssignBitwiseOR,
+
+		Comma
+	};
+
+	EvgCodeIterator itr; 
+	EvgCodeIterator end;
+
+	Symbol curSym;
+	std::string identifierStr; // Symbol::Identifer
+	LongLong curNum; // Symbol::Number
+
+	ExprAST* prev;
+
+	std::map<Symbol, Int> BinopPrecedence = { {Symbol::Add, 13} };
+	std::map<Int, std::vector<std::string>> BinopPrecedenceOrder; // Priority level to ordered list of operators
+
+	Int getBinOpPriority()
+	{
+		return BinopPrecedence[curSym];
+	}
+
+	// Read next symbol from file
+	void getNext()
+	{
+		UnicodeChar c = *itr;
+
+		while ((itr != end) && (*itr == ' ')) // Skip whitespace
+		{
+			++itr;
+			c = *itr;
+		}
+
+		if (isalpha(c)) // Identifiers start with an alphabetic character (no emojis)
+		{
+			identifierStr = c;
+
+			while (isalnum(c = *(++itr)))
+			{
+				identifierStr += c;
+			}
+
+			if (identifierStr == "fn")
+				curSym = Symbol::Function;
+			else if (identifierStr == "type")
+				curSym = Symbol::Type;
+			else
+				curSym = Symbol::Identifier;
+		}
+		else if (isdigit(c) || (c == '.')) //todo: only floating-point numbers can begin with .
+		{
+			std::string numStr;
+			do 
+			{
+				numStr += c;
+				c = *(++itr);
+			} while (isdigit(c) || c == '.');
+
+			curNum = std::stoll(numStr);
+			curSym = Symbol::Number;
+		}
+		else if (c == '/') {
+			if (itr.next() == '/') // Comment until end of line
+			{
+				while ((itr != end) && (c != '\n' && c != '\r'))
+				{
+					++itr;
+					c = *itr;
+				}
+
+				getNext();
+			}
+			else if (itr.next() == '*')
+			{
+				while ((itr != end) && (c != '*') && (itr.next() != '/'))
+				{
+					++itr;
+					c = *itr;
+				}
+
+				getNext();
+			}
+		}
+		else if (isIn(c, '+')) // Process operator
+		{
+
+		}
+		else if (c == '(')
+		{
+			curSym = Symbol::LParen;
+		}
+		else if (c == ')')
+		{
+			curSym = Symbol::RParen;
+		}
+		else if (c == ',')
+		{
+			curSym = Symbol::Comma;
+		}
+		else if (itr == end)
+		{
+			curSym = Symbol::End;
+		}
+	}
+
+	std::unique_ptr<ExprAST> parseNumberExpr() {
+		auto Result = std::make_unique<NumberExprAST>(curNum);
+		getNext(); // consume the number
+		return std::move(Result);
+	}
+
+	std::unique_ptr<ExprAST> parseParenExpr() {
+		getNext(); // eat (.
+		auto V = parseExpression();
+		if (!V)
+			return nullptr;
+
+		if (curSym != Symbol::RParen)
+		{
+			std::cout << "expected ')'\n";
+			return nullptr;
+		}
+			
+		getNext(); // eat ).
+		return V;
+	}
+
+	std::unique_ptr<ExprAST> parseIdentifierExpr() {
+		std::string IdName = identifierStr;
+
+		getNext(); // eat identifier.
+
+		if (curSym != Symbol::LParen) // Simple variable ref.
+			return std::make_unique<VariableExprAST>(IdName);
+
+		// Call.
+		getNext(); // eat (
+		std::vector<std::unique_ptr<ExprAST>> Args;
+		if (curSym != Symbol::RParen) {
+			while (true) {
+				if (auto Arg = parseExpression())
+					Args.push_back(std::move(Arg));
+				else
+					return nullptr;
+
+				if (curSym == Symbol::RParen)
+					break;
+
+				if (curSym != Symbol::Comma)
+				{
+					std::cout << "Expected ')' or ',' in argument list\n";
+					return nullptr;
+				}
+				getNext();
+			}
+		}
+
+		// Eat the ')'.
+		getNext();
+
+		return std::make_unique<CallExprAST>(IdName, std::move(Args));
+	}
+
+	std::unique_ptr<ExprAST> parsePrimary() 
+	{
+		switch (curSym) 
+		{
+		default:
+		{
+			std::cout << "unknown token when expecting an expression\n";
+			return nullptr;
+		}
+		case Symbol::Identifier:
+			return parseIdentifierExpr();
+		case Symbol::Number:
+			return parseNumberExpr();
+		case Symbol::LParen:
+			return parseParenExpr();
+		}
+	}
+
+	/// binoprhs
+	///   ::= ('+' primary)*
+	std::unique_ptr<ExprAST> parseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS) 
+	{
+		// If this is a binop, find its precedence.
+		while (true) {
+			int TokPrec = getBinOpPriority();
+
+			// If this is a binop that binds at least as tightly as the current binop,
+			// consume it, otherwise we are done.
+			if (TokPrec < ExprPrec)
+				return LHS;
+
+			// Okay, we know this is a binop.
+			Symbol BinOp = curSym;
+			getNext(); // eat binop
+
+			// Parse the primary expression after the binary operator.
+			auto RHS = parsePrimary();
+			if (!RHS)
+				return nullptr;
+
+			// If BinOp binds less tightly with RHS than the operator after RHS, let
+			// the pending operator take RHS as its LHS.
+			int NextPrec = getBinOpPriority();
+			if (TokPrec < NextPrec) {
+				RHS = parseBinOpRHS(TokPrec + 1, std::move(RHS));
+				if (!RHS)
+					return nullptr;
+			}
+
+			// Merge LHS/RHS.
+			LHS = std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
+		}
+	}
+
+	/// expression
+///   ::= primary binoprhs
+///
+	std::unique_ptr<ExprAST> parseExpression() {
+		auto LHS = parsePrimary();
+		if (!LHS)
+			return nullptr;
+
+		return parseBinOpRHS(0, std::move(LHS));
+	}
+
+	std::unique_ptr<PrototypeAST> parsePrototype() {
+		if (curSym != Symbol::Identifier)
+			return std::cout << "Expected function name in prototype\n", nullptr;
+
+		std::string FnName = identifierStr;
+		getNext();
+
+		if (curSym != Symbol::LParen)
+			return std::cout << "Expected '(' in prototype\n", nullptr;
+
+		std::vector<std::string> ArgNames;
+		while (getNext(), curSym == Symbol::Identifier)
+			ArgNames.push_back(identifierStr);
+		if (curSym != Symbol::LParen)
+			return std::cout << "Expected ')' in prototype\n", nullptr;
+
+		// success.
+		getNext(); // eat ')'.
+
+		return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+	}
+
+	/// definition ::= 'def' prototype expression
+	std::unique_ptr<FunctionAST> parseDefinition() {
+		getNext(); // eat def.
+		auto Proto = parsePrototype();
+		if (!Proto)
+			return nullptr;
+
+		if (auto E = parseExpression())
+			return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+		return nullptr;
+	}
+
+	/// toplevelexpr ::= expression
+	std::unique_ptr<FunctionAST> parseTopLevelExpr() {
+		if (auto E = parseExpression()) {
+			// Make an anonymous proto.
+			auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
+				std::vector<std::string>());
+			return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+		}
+		return nullptr;
+	}
+
+	void processLoop()
+	{
+		while (itr != end)
+		{
+			switch (curSym) {
+			case Symbol::Semicolon:
+				getNext();
+				break;
+			case Symbol::Function:
+				parseDefinition();
+				break;
+			case Symbol::End:
+				return;
+			/*case tok_extern:
+				HandleExtern();
+				break;*/
+			default:
+				parseTopLevelExpr();
+				break;
+			}
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+	void parse(Path startFile)
+	{
+		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
+
+		EvgCodeIterator itr = (Char*)firstFile.first->second.file.file->data;
+		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size;
+		itr.ptr += 3; // Skip header
+
+		getNext();
+
+
+	}
+
+	/*enum class cat
+	{
+		keyword,
+		local
+	};
+
+	std::map<std::string, cat> identifiers = { };
+
+	std::vector<ExprAST*> line; // Stage 1
+	std::string identifier;
+
+
+
+	NumberExprAST* parseNum(EvgCodeIterator& itr, const EvgCodeIterator& end)
+	{
+		std::string buf;
+		do
+		{
+			buf += *itr;
+			++itr;
+		} while (itr != end && isdigit(*itr));
+
+		return nullptr;//new NumberExprAST(std::stoi(buf));
+	}
+
+	// An identifier starts with an letter and ends before a space or symbol
+	ExprAST* parseIdentifier(EvgCodeIterator& itr, const EvgCodeIterator& end)
+	{
+		std::string buf;
+		do
+		{
+			buf += *itr;
+			++itr;
+		} while (itr != end && (isalpha(*itr) || isdigit(*itr)));
+
+		auto&& is = identifiers.find(buf);
+
+		return nullptr;
+	}
+
+	// An operator starts with a symbol and continues until it matches the longest possible operator it could be from the set
+	ExprAST* parseOperator(EvgCodeIterator& itr, const EvgCodeIterator& end)
+	{
+		std::string buf;
+
+		if (*itr == '+')
+		{
+			++itr;
+			if (*itr == '=') // +=
+			{
+
+			}
+			else
+			{
+				new BinaryExprAST(line.back(), parseTok(itr, end));
+			}
+		}
+
+		do
+		{
+			buf += *itr;
+
+			if (buf == "+")
+
+			++itr;
+		} while (itr != end && !(isalpha(*itr) || isdigit(*itr)));
+
+		auto&& is = identifiers.find(buf);
+
+		return nullptr;
+	}
+
+	void parseTok(EvgCodeIterator& itr, const EvgCodeIterator& end)
+	{
+		while (itr != end)
+		{
+			UnicodeChar c = *itr;
+
+			if (isdigit(c))
+			{
+				line.push_back(parseNum(itr, end));
+			}
+			if (isalpha(c))
+			{
+				line.push_back(parseIdentifier(itr, end));
+			}
+			if (isIn(c, '+'))
+			{
+				line.push_back(parseOperator(itr, end));
+			}
+			if (c == ';')
+			{
+
+
+				DebugBreak();
+			}
+			else // Space, newline
+			{
+				++itr;
+			}
+		}
+	}
+
 	// Read a file without a definition
 	void parse(Path startFile)
 	{
 		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
 
-		EvgCodeIterator itr = firstFile.first->second.file.file->begin();
+		EvgCodeIterator itr = (Char*)firstFile.first->second.file.file->data;
+		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size;
+		itr.ptr += 3; // Skip header
 
-		while (itr != firstFile.first->second.file.file->end())
-		{
-			std::cout << *itr << '\n';
-			++itr;
-		}
-	}
+		std::string sym;
+
+
+		parseTok(itr, end);
+	}*/
 };
 
 class EvgCompiler

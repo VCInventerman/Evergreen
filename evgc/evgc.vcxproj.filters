@@ -23,5 +23,8 @@
     <ClInclude Include="include\llvmToy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\EvgCodeIterator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
