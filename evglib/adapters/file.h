@@ -76,7 +76,7 @@ namespace evg
 		virtual Char* begin() = 0;
 		virtual Char* end() = 0;
 
-		virtual ~File() = 0 {};
+		virtual ~File() {};
 	};
 
 

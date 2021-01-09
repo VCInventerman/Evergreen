@@ -4,24 +4,18 @@
 #include "../containers/Vector.h"
 #include "../string/String.h"
 
-//todo: enum of "nontrivial" types like ExitCode
+using ExitCode = Int;
+
+enum
+{
+	ExitSuccess = 0,
+	ExitFailure = -1
+};
 
 class ProgramEnv
 {
 public:
-	class ExitCode
-	{
-	public:
-		Int val;
 
-		static ExitCode Success() { return { 0 }; }
-		static ExitCode Failure() { return { -1 }; }
-
-		operator int() { return val; }
-
-		ExitCode() : val(Success().val) {}
-		ExitCode(const Int _val) : val(_val) {}
-	};
 
 	Vector<String> args;
 	String executableName;
@@ -39,9 +33,9 @@ public:
 		}*/
 	}
 
-	void quit(const ExitCode code = ExitCode::Success())
+	void quit(const ExitCode code = ExitSuccess)
 	{
-		exit(code.val);
+		exit(code);
 	}
 
 	void callAtExit()
@@ -56,14 +50,14 @@ public:
 ProgramEnv thisProgram;
 
 
-ProgramEnv::ExitCode EvgMain();
+ExitCode EvgMain();
 
-#ifndef HAS_MAIN
+#ifdef EVG_INSERT_MAIN
 int main(int argc, char** argv) // Wrapper
 {
 	thisProgram.setArgs(argc, argv);
-	ProgramEnv::ExitCode code = EvgMain();
+	ExitCode code = EvgMain();
 	thisProgram.callAtExit();
-	return code.val;
+	return code;
 }
 #endif

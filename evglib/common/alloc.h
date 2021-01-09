@@ -45,6 +45,7 @@ public:
 			//ret.err = Error("Generic Malloc Error");
 			return ret;
 		}
+		return ret;
 	}
 
 	// Manually destruct before

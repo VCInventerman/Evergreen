@@ -16,160 +16,183 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_bin_float.hpp>
 
+#define EVG_INSERT_MAIN
 #include "evglib.h"
 
 #include "EvgCodeIterator.h"
 
 using namespace evg;
 
-//todo: allow class member names to override language keywords
-
-
-enum class LineEnding : UInt
-{
-	unknown = -1,
-	n = 1,
-	rn = 2,
-	r = 3,
-};
+//todo: allow class member names to language keywords
+//high-precison int and float for numbers with boost
 
 
 /*
-class ASTElement
+
+enum class Symbol
 {
-public:
-	StringView text;
+	End = 256,
+	Identifier,
+	Number,
+	Function,
+	Typedef,
+
+	Semicolon,
+	LParen,
+	RParen,
+	LCBracket,
+	RCBracket,
+
+	PostIncrement,
+	PostDecrement,
+	Call,
+	Subscript,
+	GetMember,
+	GetMemberPtr,
+
+	PreIncrement,
+	PreDecrement,
+	UnaryPlus,
+	UnaryMinus,
+	LogicalNOT,
+	BitwiseNOT,
+	SimpleCast,
+	Defererence,
+	AddressOf,
+
+	Multiply,
+	Divide,
+	Remainder,
+
+	Add,
+	Sub,
+
+	BitwiseLShift,
+	BitwiseRShift,
+
+	ThreeWayCompare,
+
+	LessThan,
+	GreaterThan,
+	LessOrEqual,
+	GreaterOrEqual,
+
+	Equal,
+	Inequal,
+
+	BitwiseAND,
+
+	BitwiseXOR,
+
+	BitwiseOR,
+
+	LogicalAND,
+
+	LogicalOR,
+
+	Ternary,
+	Assign,
+	AssignAdd,
+	AssignSub,
+	AssignMultiply,
+	AssignDivide,
+	AssignRemainder,
+	AssignBitwiseLShift,
+	AssignBitwiseRShift,
+	AssignBitwiseAND,
+	AssignBitwiseXOR,
+	AssignBitwiseOR,
+
+	Comma
 };
 
-class LiteralIntegerAST : public ASTElement
-{
-public:
-	boost::multiprecision::cpp_int val;
-};
+std::map<Symbol, Int> opPrecedence = { {Symbol::Multiply, 13}, {Symbol::Divide, 13}, {Symbol::Add, 12}, {Symbol::Sub, 12} };
 
-class LiteralFloatAST : public ASTElement
-{
-public:
-	boost::multiprecision::cpp_bin_float_100 val;
-};
-
-class LiteralStringAST : public ASTElement
-{
-public:
-	ImString value;
-};
-
-class ExprAST {
-public:
-	virtual ~ExprAST() = default;
-
-	//virtual Value* codegen() = 0;
-};
-
-class FunctionAST : public ASTElement
-{
-public:
-	
-};
-
-class ClassMemberAST : public ASTElement
-{
-public:
-	ClassAST* mtype;
-
-	ExprAST* defaultVal; // Equivalent to using "mem = defaultVal" in constructor (copy or move)
-};
-
-class ClassAST : public ASTElement
-{
-public:
-	ImString name;
-
-	std::map<ImString, ClassMemberAST> members;
-};
-*/
 
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {
 public:
 	virtual ~ExprAST() = default;
 
-	virtual llvm::Value* codegen() {};// = 0;
+	llvm::Value* codegen() { return nullptr; };// = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
-class NumberExprAST : public ExprAST {
-	LongLong Val;
-
+class NumberExprAST : public ExprAST 
+{
 public:
-	NumberExprAST(Int Val) : Val(Val) {}
+	Int val;
 
-	llvm::Value* codegen() override;
+	NumberExprAST() = default;
+	NumberExprAST(Int _val) : val(_val) {}
+
+	llvm::Value* codegen();
 };
 
 /// VariableExprAST - Expression class for referencing a variable, like "a".
-class VariableExprAST : public ExprAST {
-	std::string Name;
-
+class VariableExprAST : public ExprAST
+{
 public:
-	VariableExprAST(const std::string& Name) : Name(Name) {}
+	std::string name;
 
-	llvm::Value* codegen() override;
+	VariableExprAST() = default;
+	VariableExprAST(const std::string& _name) : name(_name) {}
+
+	llvm::Value* codegen();
 };
 
 /// BinaryExprAST - Expression class for a binary operator.
-class BinaryExprAST : public ExprAST {
-	char Op;
-	std::unique_ptr<ExprAST> LHS, RHS;
-
+class BinaryExprAST : public ExprAST
+{
 public:
-	BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
-		std::unique_ptr<ExprAST> RHS)
-		: Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+	Symbol op;
+	UPtr<ExprAST> lhs;
+	UPtr<ExprAST> rhs;
 
-	llvm::Value* codegen() override;
+	BinaryExprAST() = default;
+	BinaryExprAST(Symbol _op, UPtr<ExprAST> _lhs, UPtr<ExprAST> _rhs) : op(_op), lhs(std::move(_lhs)), rhs(std::move(_rhs)) {}
+
+	llvm::Value* codegen();
 };
 
 /// CallExprAST - Expression class for function calls.
-class CallExprAST : public ExprAST {
-	std::string Callee;
-	std::vector<std::unique_ptr<ExprAST>> Args;
-
+class CallExprAST : public ExprAST
+{
 public:
-	CallExprAST(const std::string& Callee,
-		std::vector<std::unique_ptr<ExprAST>> Args)
-		: Callee(Callee), Args(std::move(Args)) {}
+	std::string callee;
+	std::vector<UPtr<ExprAST>> args;
 
-	llvm::Value* codegen() override;
+	CallExprAST() = default;
+	CallExprAST(const std::string& _callee, std::vector<UPtr<ExprAST>> _args) : callee(_callee), args(std::move(_args)) {}
+
+	llvm::Value* codegen();
 };
 
-/// PrototypeAST - This class represents the "prototype" for a function,
-/// which captures its name, and its argument names (thus implicitly the number
-/// of arguments the function takes).
-class PrototypeAST {
-	std::string Name;
-	std::vector<std::string> Args;
-
+class FunctionParamAST
+{
 public:
-	PrototypeAST(const std::string& Name, std::vector<std::string> Args)
-		: Name(Name), Args(std::move(Args)) {}
-
-	llvm::Function* codegen();
-	const std::string& getName() const { return Name; }
+	std::string type;
+	std::string name;
+	void* defaultVal;
 };
 
 /// FunctionAST - This class represents a function definition itself.
-class FunctionAST {
-	std::unique_ptr<PrototypeAST> Proto;
-	std::unique_ptr<ExprAST> Body;
-
+class FunctionAST 
+{
 public:
-	FunctionAST(std::unique_ptr<PrototypeAST> Proto,
-		std::unique_ptr<ExprAST> Body)
-		: Proto(std::move(Proto)), Body(std::move(Body)) {}
+	std::string name;
+	std::vector<FunctionParamAST> args;
+	std::vector<FunctionParamAST> returns;
+	UPtr<ExprAST> body;
+	bool defined;
+
+	FunctionAST() = default;
+	FunctionAST(std::string& _name, std::vector<std::string> _args, UPtr<ExprAST> _body, bool _defined) : name(_name), args(std::move(_args)), body(std::move(_body)) {}
 
 	llvm::Function* codegen();
 };
+
+
 
 
 class TextFile
@@ -219,104 +242,29 @@ public:
 	CodeFile(Path path) : file(path) {}
 };
 
+
+
 // Library
 class Module
 {
 public:
 	Path root;
 
-	// Paths relative to module root mapped to code
+	// Paths relative to module root : code
 	std::map<Path, CodeFile> files;
 
-	enum class Symbol
-	{
-		End = 256,
-		Identifier,
-		Number,
-		Function,
-		Type,
 
-		Semicolon,
-		LParen,
-		RParen,
 
-		PostIncrement,
-		PostDecrement,
-		Call,
-		Subscript,
-		GetMember,
-
-		PreIncrement,
-		PreDecrement,
-		UnaryPlus,
-		UnaryMinus,
-		LogicalNOT,
-		BitwiseNOT,
-		SimpleCast,
-		Defererence,
-		AddressOf,
-
-		Multiply,
-		Divide,
-		Remainder,
-
-		Add,
-		Sub,
-
-		BitwiseLShift,
-		BitwiseRShift,
-
-		ThreeWayCompare,
-
-		LessThan,
-		GreaterThan,
-		LessOrEqual,
-		GreaterOrEqual,
-
-		Equal,
-		Inequal,
-
-		BitwiseAND,
-		
-		BitwiseXOR,
-
-		BitwiseOR,
-
-		LogicalAND,
-		
-		LogicalOR,
-
-		Ternary,
-		Assign,
-		AssignAdd,
-		AssignSub,
-		AssignMultiply,
-		AssignDivide,
-		AssignRemainder,
-		AssignBitwiseLShift,
-		AssignBitwiseRShift,
-		AssignBitwiseAND,
-		AssignBitwiseXOR,
-		AssignBitwiseOR,
-
-		Comma
-	};
-
-	EvgCodeIterator itr; 
+	EvgCodeIterator itr;
 	EvgCodeIterator end;
 
 	Symbol curSym;
 	std::string identifierStr; // Symbol::Identifer
-	LongLong curNum; // Symbol::Number
-
-	ExprAST* prev;
-
-	std::map<Symbol, Int> BinopPrecedence = { {Symbol::Add, 13} };
-	std::map<Int, std::vector<std::string>> BinopPrecedenceOrder; // Priority level to ordered list of operators
+	Int curNum; // Symbol::Number
 
 	Int getBinOpPriority()
 	{
-		return BinopPrecedence[curSym];
+		return opPrecedence[curSym];
 	}
 
 	// Read next symbol from file
@@ -355,7 +303,7 @@ public:
 				c = *(++itr);
 			} while (isdigit(c) || c == '.');
 
-			curNum = std::stoll(numStr);
+			curNum = std::stoi(numStr);
 			curSym = Symbol::Number;
 		}
 		else if (c == '/') {
@@ -380,7 +328,7 @@ public:
 				getNext();
 			}
 		}
-		else if (isIn(c, '+')) // Process operator
+		else if (isIn(c, '+', '-')) // Process operator
 		{
 
 		}
@@ -402,13 +350,13 @@ public:
 		}
 	}
 
-	std::unique_ptr<ExprAST> parseNumberExpr() {
+	UPtr<ExprAST> parseNumberExpr() {
 		auto Result = std::make_unique<NumberExprAST>(curNum);
 		getNext(); // consume the number
 		return std::move(Result);
 	}
 
-	std::unique_ptr<ExprAST> parseParenExpr() {
+	UPtr<ExprAST> parseParenExpr() {
 		getNext(); // eat (.
 		auto V = parseExpression();
 		if (!V)
@@ -424,7 +372,7 @@ public:
 		return V;
 	}
 
-	std::unique_ptr<ExprAST> parseIdentifierExpr() {
+	UPtr<ExprAST> parseIdentifierExpr() {
 		std::string IdName = identifierStr;
 
 		getNext(); // eat identifier.
@@ -434,7 +382,7 @@ public:
 
 		// Call.
 		getNext(); // eat (
-		std::vector<std::unique_ptr<ExprAST>> Args;
+		std::vector<UPtr<ExprAST>> Args;
 		if (curSym != Symbol::RParen) {
 			while (true) {
 				if (auto Arg = parseExpression())
@@ -460,7 +408,7 @@ public:
 		return std::make_unique<CallExprAST>(IdName, std::move(Args));
 	}
 
-	std::unique_ptr<ExprAST> parsePrimary() 
+	UPtr<ExprAST> parsePrimary() 
 	{
 		switch (curSym) 
 		{
@@ -480,7 +428,7 @@ public:
 
 	/// binoprhs
 	///   ::= ('+' primary)*
-	std::unique_ptr<ExprAST> parseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS) 
+	UPtr<ExprAST> parseBinOpRHS(int ExprPrec, UPtr<ExprAST> LHS) 
 	{
 		// If this is a binop, find its precedence.
 		while (true) {
@@ -517,7 +465,7 @@ public:
 	/// expression
 ///   ::= primary binoprhs
 ///
-	std::unique_ptr<ExprAST> parseExpression() {
+	UPtr<ExprAST> parseExpression() {
 		auto LHS = parsePrimary();
 		if (!LHS)
 			return nullptr;
@@ -525,17 +473,13 @@ public:
 		return parseBinOpRHS(0, std::move(LHS));
 	}
 
-	std::unique_ptr<PrototypeAST> parsePrototype() {
-		if (curSym != Symbol::Identifier)
-			return std::cout << "Expected function name in prototype\n", nullptr;
+	UPtr<PrototypeAST> parsePrototype() {
 
-		std::string FnName = identifierStr;
-		getNext();
 
-		if (curSym != Symbol::LParen)
-			return std::cout << "Expected '(' in prototype\n", nullptr;
 
-		std::vector<std::string> ArgNames;
+
+
+		
 		while (getNext(), curSym == Symbol::Identifier)
 			ArgNames.push_back(identifierStr);
 		if (curSym != Symbol::LParen)
@@ -548,26 +492,100 @@ public:
 	}
 
 	/// definition ::= 'def' prototype expression
-	std::unique_ptr<FunctionAST> parseDefinition() {
-		getNext(); // eat def.
+	UPtr<FunctionAST> parseFunction() {
+		getNext(); // get symbol after fn
 		auto Proto = parsePrototype();
-		if (!Proto)
-			return nullptr;
 
-		if (auto E = parseExpression())
-			return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
-		return nullptr;
-	}
+		if (curSym != Symbol::Identifier)
+			return std::cout << "Expected function name in prototype\n", nullptr;
 
-	/// toplevelexpr ::= expression
-	std::unique_ptr<FunctionAST> parseTopLevelExpr() {
-		if (auto E = parseExpression()) {
-			// Make an anonymous proto.
-			auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
-				std::vector<std::string>());
-			return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+		auto func = std::make_unique<FunctionAST>();
+		func->name = identifierStr;
+		getNext();
+
+		if (curSym == Symbol::LParen) // Function has parameters
+		{
+			getNext();
+			if (curSym == Symbol::RParen) // No arguments
+			{
+
+			}
+			else // Must be type of first parameter
+			{
+				func->args.push_back({});
+				func->args.back().type = identifierStr;
+				getNext();
+				func->args.back().name = identifierStr;
+				getNext();
+				if (curSym == Symbol::Assign) //todo: default value
+				{
+					getNext();
+					func->args.back().defaultVal == identifierStr.c_str();
+					getNext();
+				}
+
+				while (curSym == Symbol::Comma)
+				{
+					func->args.push_back({});
+					func->args.back().type = identifierStr;
+					getNext();
+					func->args.back().name = identifierStr;
+					getNext();
+				}
+
+				func->args.push_back({});
+				func->args.back().type = identifierStr;
+				getNext();
+				func->args.back().name = identifierStr;
+				getNext(); // Consume )
+				getNext();
+			}
+
+			if (curSym == Symbol::GetMemberPtr) // Has return value
+			{
+				getNext(); // Must be (
+				func->returns.push_back({});
+				func->returns.back().type = identifierStr;
+				getNext();
+				func->returns.back().name = identifierStr;
+				getNext();
+				if (curSym == Symbol::Assign) //todo: default value
+				{
+					getNext();
+					func->returns.back().defaultVal == identifierStr.c_str();
+					getNext();
+				}
+
+				while (curSym == Symbol::Comma)
+				{
+					func->returns.push_back({});
+					func->returns.back().type = identifierStr;
+					getNext();
+					func->returns.back().name = identifierStr;
+					getNext();
+				}
+
+				func->returns.push_back({});
+				func->returns.back().type = identifierStr;
+				getNext();
+				func->returns.back().name = identifierStr;
+				getNext(); // Must be )
+				getNext();
+			}
 		}
-		return nullptr;
+
+		if (curSym == Symbol::LCBracket) // Defined
+		{
+			func->defined = true;
+			getNext();
+			parseExpression();
+		}
+		else if (curSym == Symbol::Semicolon)
+		{
+			func->defined = false;
+		}
+
+		return func;
 	}
 
 	void processLoop()
@@ -579,15 +597,12 @@ public:
 				getNext();
 				break;
 			case Symbol::Function:
-				parseDefinition();
+				parseFunction();
 				break;
 			case Symbol::End:
 				return;
-			/*case tok_extern:
-				HandleExtern();
-				break;*/
 			default:
-				parseTopLevelExpr();
+				//top level expression
 				break;
 			}
 		}
@@ -608,131 +623,13 @@ public:
 		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
 
 		EvgCodeIterator itr = (Char*)firstFile.first->second.file.file->data;
-		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size;
-		itr.ptr += 3; // Skip header
+		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size + 1;
+		itr.ptr += 3; // Skip magic file encoding header
 
 		getNext();
-
+		processLoop();
 
 	}
-
-	/*enum class cat
-	{
-		keyword,
-		local
-	};
-
-	std::map<std::string, cat> identifiers = { };
-
-	std::vector<ExprAST*> line; // Stage 1
-	std::string identifier;
-
-
-
-	NumberExprAST* parseNum(EvgCodeIterator& itr, const EvgCodeIterator& end)
-	{
-		std::string buf;
-		do
-		{
-			buf += *itr;
-			++itr;
-		} while (itr != end && isdigit(*itr));
-
-		return nullptr;//new NumberExprAST(std::stoi(buf));
-	}
-
-	// An identifier starts with an letter and ends before a space or symbol
-	ExprAST* parseIdentifier(EvgCodeIterator& itr, const EvgCodeIterator& end)
-	{
-		std::string buf;
-		do
-		{
-			buf += *itr;
-			++itr;
-		} while (itr != end && (isalpha(*itr) || isdigit(*itr)));
-
-		auto&& is = identifiers.find(buf);
-
-		return nullptr;
-	}
-
-	// An operator starts with a symbol and continues until it matches the longest possible operator it could be from the set
-	ExprAST* parseOperator(EvgCodeIterator& itr, const EvgCodeIterator& end)
-	{
-		std::string buf;
-
-		if (*itr == '+')
-		{
-			++itr;
-			if (*itr == '=') // +=
-			{
-
-			}
-			else
-			{
-				new BinaryExprAST(line.back(), parseTok(itr, end));
-			}
-		}
-
-		do
-		{
-			buf += *itr;
-
-			if (buf == "+")
-
-			++itr;
-		} while (itr != end && !(isalpha(*itr) || isdigit(*itr)));
-
-		auto&& is = identifiers.find(buf);
-
-		return nullptr;
-	}
-
-	void parseTok(EvgCodeIterator& itr, const EvgCodeIterator& end)
-	{
-		while (itr != end)
-		{
-			UnicodeChar c = *itr;
-
-			if (isdigit(c))
-			{
-				line.push_back(parseNum(itr, end));
-			}
-			if (isalpha(c))
-			{
-				line.push_back(parseIdentifier(itr, end));
-			}
-			if (isIn(c, '+'))
-			{
-				line.push_back(parseOperator(itr, end));
-			}
-			if (c == ';')
-			{
-
-
-				DebugBreak();
-			}
-			else // Space, newline
-			{
-				++itr;
-			}
-		}
-	}
-
-	// Read a file without a definition
-	void parse(Path startFile)
-	{
-		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
-
-		EvgCodeIterator itr = (Char*)firstFile.first->second.file.file->data;
-		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size;
-		itr.ptr += 3; // Skip header
-
-		std::string sym;
-
-
-		parseTok(itr, end);
-	}*/
 };
 
 class EvgCompiler
@@ -763,69 +660,86 @@ public:
 };
 
 
+*/
 
+bool isPowerOfTen(U64 input) {
+	return
+		input == 1ULL
+		|| input == 10ULL
+		|| input == 100ULL
+		|| input == 1000ULL
+		|| input == 10000ULL
+		|| input == 100000ULL
+		|| input == 1000000ULL
+		|| input == 10000000ULL
+		|| input == 100000000ULL
+		|| input == 1000000000ULL
+		|| input == 10000000000ULL
+		|| input == 100000000000ULL
+		|| input == 1000000000000ULL
+		|| input == 10000000000000ULL
+		|| input == 100000000000000ULL
+		|| input == 1000000000000000ULL
+		|| input == 10000000000000000ULL
+		|| input == 100000000000000000ULL
+		|| input == 1000000000000000000ULL;
+}
 
-ProgramEnv::ExitCode EvgMain()
+struct ipos
 {
-	EvgCompiler compiler;
+	int x, y, z;
 
-	compiler.compileAndRun((Char*)"../tests/test.evg");
+	ipos(int _x, int _y, int _z) : x(_x), y(_y), z(_z) {}
 
-
-	/*
-	std::ifstream fileRaw("../tests/test.evg", std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
-	Size size = fileRaw.tellg();
-	fileRaw.seekg(std::ifstream::beg);
-
-	std::basic_string<Char, std::char_traits<Char>, std::allocator<Char>> source;
-	source.resize(size);
-	fileRaw.read((char*)source.data(), size);
-
-	CharIterator cItr = (Char*)&*source.begin();
-	if ((source.size() >= 4) && (source[0] == 0x00) && (source[1] == 0x00) && (source[2] == 0xfe) && (source[3] == 0xff))
-		std::cout << "UTF-32BE is not supported";
-	else if ((source.size() >= 4) && (source[0] == 0xff) && (source[1] == 0xfe) && (source[2] == 0x00) && (source[3] == 0x00))
-		std::cout << "UTF-32LE is not supported";
-	else if ((source.size() >= 3) && (source[0] == 0xef) && (source[1] == 0xbb) && (source[2] == 0xbf))
+	inline bool operator==(const ipos& a) const
 	{
-		cItr.point += 3;
+		return (x == a.x && y == a.y && z == a.z);
 	}
-	else if ((source.size() >= 2) && (source[0] == 0xfe) && (source[1] == 0xff))
-		std::cout << "UTF-16BE is not supported";
-	else if ((source.size() >= 2) && (source[0] == 0xff) && (source[1] == 0xfe))
-		std::cout << "UTF-16LE is not supported";
+};
 
-	for (Char* end = (Char*)&source.back() + 1; cItr < (Char*)&source.back() + 1; cItr.next((Char*)&source.back() + 1), end = (Char*)&source.back() + 1)
+struct iposClusterHash
+{
+	std::size_t operator()(const ipos& pos) const
 	{
-		UnicodeChar c = cItr.get(end);
-
-		switch (c)
-		{
-		case ' ': break;
-		case '\n': break;
-		case '\r': ++cItr.point; break;
-
-		case '/':
-		{
-			if (cItr.nextIs(end, "//"))
-			{
-				cItr.itrUntil(end, "\r\n");
-			}
-			if (cItr.nextIs(end, "/*"))
-			{
-				//cItr.itrUntil(end, "//"); add back star for this one
-			}
-		}
-		}
-
-		if (isdigit(c))
-		{
-			 
-		}
+		return (pos.x * 88339) ^ (pos.z * 91967) ^ (pos.z * 126323);
 	}
-	*/
+
+
+	static inline ipos getEmptyKey() { return { ~0, ~0, ~0 }; }
+	static inline ipos getTombstoneKey() { return { ~0 - 1,  ~0 - 1,  ~0 - 1 }; }
+
+	static Size getHashValue(const ipos& pos)
+	{
+		return (pos.x * 88339) ^ (pos.z * 91967) ^ (pos.z * 126323);
+	}
+
+	static bool isEqual(const ipos& lhs, const ipos& rhs)
+	{
+		return lhs == rhs;
+	}
+};
+
+ExitCode EvgMain()
+{
+	//EvgCompiler compiler;
+
+	//compiler.compileAndRun((Char*)"../tests/test.evg");
+
+	llvm::LLVMContext context;
+	llvm::IRBuilder<> builder(context);
+	//UPtr<llvm::Module> mod = std::make_unique<llvm::Module>("EvgCompiler", context);
+	llvm::Module* mod = new llvm::Module("EvgCompiler", context);
+
+	std::vector<llvm::Type*> params(2, llvm::Type::getInt32Ty(context));
+	llvm::FunctionType* ft = llvm::FunctionType::get(llvm::Type::getInt32Ty(context), params, false);
+
+	llvm::Function* F = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "TestFunc", mod);
 
 
 
-	return ProgramEnv::ExitCode::Success();
+
+
+	mod->print(llvm::outs(), nullptr);
+
+	return ExitSuccess;
 }

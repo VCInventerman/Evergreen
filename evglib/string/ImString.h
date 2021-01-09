@@ -80,7 +80,7 @@ public:
 			Int c;
 
 			const Char* i = str;
-			while (c = *i++)
+			while ((c = *i++))
 				hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
 			return { hash, i - str };
@@ -195,10 +195,6 @@ public:
 		return nullptr;
 	}
 
-	operator char* ()
-	{
-		return (char*)&*source->data.begin();
-	}
 	operator Char* ()
 	{
 		return (Char*)&*source->data.begin();
@@ -207,4 +203,5 @@ public:
 	const bool operator< (const ImStringBase<CharT, AllocatorT>& rhs) const { return source->hash < rhs.source->hash; }
 };
 
-ImStringBase<>::Manager ImStringBase<>::Manager::defaultManager;
+template <>
+ImStringBase<>::Manager ImStringBase<>::Manager::defaultManager = {};

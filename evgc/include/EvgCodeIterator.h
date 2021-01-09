@@ -4,6 +4,14 @@
 
 using namespace evg;
 
+enum class LineEnding : UInt
+{
+	unknown,
+	n, // Unix
+	rn, // DOS
+	r, // Old MacOS
+};
+
 class EvgCodeIterator
 {
 public:
@@ -13,19 +21,21 @@ public:
 	using pointer = Char*;
 	using reference = Char&;
 
-	Char* ptr;
 
-	//operator Char* () { return point; }
-	//Char& operator* () { return *ptr; }
+	ContiguousBufPtrEnd<Char> code; // Begin and end of code file
+	Char* ptr; // Current point in code
 
-	//bool operator== (const EvgCodeIterator& rhs) const { return ptr == rhs.ptr; }
-	//bool operator!= (const EvgCodeIterator& rhs) const { return !(*this == rhs); }
 
 	EvgCodeIterator() = default;
-	EvgCodeIterator(Char* const _ptr) : ptr(_ptr) {}
+	EvgCodeIterator(const ContiguousBufPtrEnd<Char> _code, Char* const _ptr) : code(_code), ptr(_ptr) {}
 
-	EvgCodeIterator& operator++ () { ptr += size(); return *this; }
-	EvgCodeIterator operator++ (int) { EvgCodeIterator ret = *this; ptr += size(); return ret; }
+	EvgCodeIterator& operator++ ()
+	{ 
+		UInt csize = size();
+		ptr += csize > code.end() - ptr ? 0 : csize; 
+		return *this;
+	}
+	EvgCodeIterator operator++ (int) { EvgCodeIterator ret = *this; ++(*this); return ret; }
 
 	EvgCodeIterator& operator-- ()
 	{
@@ -81,44 +91,58 @@ public:
 
 	UnicodeChar next()
 	{
-		EvgCodeIterator lookahead = this->ptr;
+		EvgCodeIterator lookahead(*this);
 		++lookahead;
 		return *lookahead;
 	}
 
-	bool nextIs(const Char* const end, std::string_view compare)
+	void skipNewline()
 	{
-		for (Size i = 0; (i < compare.size()) && (i < end - ptr); ++i)
+		UnicodeChar c = **this;
+		if (c == '\n')
 		{
-			if (compare[i] != ptr[i])
-				return false;
+			++*this;
 		}
-
-		return true;
-	}
-
-	bool itrUntil(const Char* const end, std::string_view compare)
-	{
-		for (; ptr < end; ++ptr)
+		else if (c == '\r')
 		{
-			if (nextIs(end, compare))
+			if (next() == '\n')
 			{
-				ptr += compare.size() - 1;
-				return true;
+				++*this;
+				++*this;
+			}
+			else
+			{
+				++*this;
 			}
 		}
-
-		return false;
 	}
 
-	bool nextNonNum(const Char* const end)
+	bool atBack()
 	{
-		for (; ptr < end; ++ptr)
+		return ptr == code.end_raw - 1;
+	}
+
+	// Test if a character is present inside this parenthesis level. Skips all further text in between ()
+	// Assumes that ptr is currently on a left parenthesis
+	bool hasCharInSameLevel(const UnicodeChar target)
+	{
+		Int depth = 0;
+
+		for (EvgCodeIterator i(*this); i.ptr != code.end_raw; ++i)
 		{
-			if (!isdigit(*ptr))
+			UnicodeChar c = *i;
+			
+			if (c == '(')
 			{
-				return true;
+				++depth;
 			}
+			else if (c == ')')
+			{
+				--depth;
+			}
+			if (c == target && depth == 0)
+				return true;
+
 		}
 
 		return false;
