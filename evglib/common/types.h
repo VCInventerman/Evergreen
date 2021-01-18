@@ -29,9 +29,9 @@ category(evg)
 	using SInt = signed int;
 	using Int = int;
 
-	using ULong = unsigned long;
-	using SLong = signed long;
-	using Long = long;
+	using ULong = unsigned long long;
+	using SLong = signed long long;
+	using Long = long long;
 
 	using ULongLong = unsigned long long;
 	using SLongLong = signed long long;
@@ -116,6 +116,7 @@ category(evg)
 
 	using VoidFn = void(*)();
 
+	using EnumVal = int;
 	
 	template<typename T>
 	using Ptr = T*;

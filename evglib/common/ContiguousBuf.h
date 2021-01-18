@@ -108,6 +108,8 @@ public:
 	{
 		return begin_raw;
 	}
+
+	operator char* () { return begin_raw; }
 };
 
 template <typename T, typename SizeT = Size>
@@ -174,8 +176,9 @@ public:
 };
 */
 
-template <I64 begin_raw, I64 end_raw, typename CountT = I64>
-class ContiguousRange
+// Templated contiguous range - Only requires one int for counter
+template <Int begin_raw, Int end_raw, typename CountT = Int>
+class TContiguousRange
 {
 public:
 	class Iterator
@@ -183,7 +186,7 @@ public:
 	public:
 		CountT counter;
 
-		Iterator(const I64 _counter = begin_raw) : counter(_counter) {}
+		Iterator(const Int _counter = begin_raw) : counter(_counter) {}
 		
 		Iterator& operator++ () { ++counter; return *this; }
 		Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
@@ -201,5 +204,36 @@ public:
 	Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
 };
 
-template <I64 begin_raw, I64 end_raw, typename CountT>
-using Range = ContiguousRange<begin_raw, end_raw, CountT>;
+template <typename CountT = Int>
+class ContiguousRange
+{
+public:
+	CountT begin_raw;
+	CountT end_raw;
+
+	class Iterator
+	{
+	public:
+		CountT counter;
+
+		Iterator(const CountT _counter) : counter(_counter) {}
+
+		Iterator& operator++ () { ++counter; return *this; }
+		Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
+
+		Iterator& operator-- () { --counter; return *this; }
+		Iterator operator--(int) { Iterator ret = *this; --(*this); return ret; }
+
+		bool operator==(Iterator lhs) const { return counter == lhs.counter; }
+		bool operator!=(Iterator lhs) const { return !(*this == lhs); }
+
+		CountT operator*() { return counter; }
+	};
+
+	ContiguousRange(const CountT _begin_raw, const CountT _end_raw) : begin_raw(_begin_raw), end_raw(_end_raw) {}
+
+	Iterator begin() { return begin_raw; }
+	Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
+};
+
+using Range = ContiguousRange<>;
