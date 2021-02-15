@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../common/types.h"
-#include "../common/ContiguousBuf.h"
+#include "evergreen/common/types.h"
+#include "evergreen/common/ContiguousBuf.h"
 
 //todo: interfaces: ex. Vector implements Array
 //todo: template by whether or not vector owns memory instead of appending View

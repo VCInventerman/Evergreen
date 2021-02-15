@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/types.h"
+#include "evergreen/common/types.h"
 
 // String that is terminated through a null character
 class CString

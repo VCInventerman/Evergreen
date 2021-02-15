@@ -1,0 +1,15 @@
+#pragma once
+
+#define EVG_DISABLE_RETERROR
+#define EVG_BOOST
+
+#ifdef EVG_BOOST
+#include "evergreen/adapters/thread.h"
+#endif
+
+#include "evergreen/string/String.h"
+#include "evergreen/common/ProgramEnv.h"
+#include "evergreen/adapters/file.h"
+#include "evergreen/containers/varint.h"
+
+#include "evergreen/common/types.h"

@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include "evergreen/common/types.h"
 
-#include "core/common/logging.h"
-
-namespace bgl
+namespace evg
 {
 	// Variable length max 32 bit integer for positive values
 	namespace vuint32

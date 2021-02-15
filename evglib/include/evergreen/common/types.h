@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cppstd.h"
+#include "evergreen/common/cppstd.h"
 
 #define category(name) namespace name {} using namespace name; namespace name
 
@@ -14,6 +14,31 @@
 #define var auto
 #define anyvar auto&&
 #define typeof decltype
+
+// Cast operator
+#define EVG_CXX_CAST(type) operator type () const { return operator_conv<type>(); }
+#define EVG_CXX_CAST_ADAPT(type, adapter) operator type () const { return (type)(operator_conv<adapter>()); }
+
+#define EVG_CXX_CAST_EXPLICIT(type) explicit operator type () const { return operator_conv<type>(); }
+#define EVG_CXX_CAST_EXPLICIT_ADAPT(type, adapter) explicit operator type () const { return (type)(operator_conv<adapter>()); }
+
+
+#define EVG_CXX_CAST_REDIRECT(type) operator type () const { return operator_conv<type>(); }
+#define EVG_CXX_CAST_ADAPT_REDIRECT(type, adapter) operator type () const { return (type)(operator_conv<adapter>()); }
+
+#define EVG_CXX_CAST_EXPLICIT_REDIRECT(type) explicit operator type () const { return operator_conv<type>(); }
+#define EVG_CXX_CAST_EXPLICIT_ADAPT_REDIRECT(type, adapter) explicit operator type () const { return (type)(operator_conv<adapter>()); }
+
+#define conv(var, type) var.operator type()
+
+
+#ifndef EVG_DISABLE_RETERROR
+#define EVG_RET_ERRORT Error
+#define EVG_RET_ERROR(val) return val;
+#else
+#define EVG_RET_ERRORT void
+#define EVG_RET_ERROR(val) throw 
+#endif
 
 category(evg)
 {
@@ -39,6 +64,8 @@ category(evg)
 
 	using Float = float;
 	using Double = double;
+
+	using Bool = bool;
 
 	// Fixed width integer aliases
 	using U8 = uint8_t;
@@ -78,6 +105,12 @@ category(evg)
 	using SF128 = InvalidType;
 	using UF128 = InvalidType;
 
+	// Bool aliases
+	using Bool8 = Bool;
+	using Bool16 = InvalidType;
+	using Bool32 = InvalidType;
+	using Bool64 = InvalidType;
+
 	namespace fast
 	{
 		using Int = Int;
@@ -108,6 +141,7 @@ category(evg)
 	using UChar = unsigned char;
 	using SChar = signed char;
 #define Char char
+#define CChar const char
 
 	enum class Byte : Char {};
 	using Size = size_t;
@@ -115,6 +149,7 @@ category(evg)
 	using binary_rep(hexadecimal) Hash = Size;
 
 	using VoidFn = void(*)();
+	void nop() {} // Global "nop" function
 
 	using EnumVal = int;
 	

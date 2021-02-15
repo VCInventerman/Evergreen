@@ -98,10 +98,13 @@
 
 #include <lld/Common/Driver.h>
 
+#include <llvm/Demangle/Demangle.h>
+
 #include "evglib.h"
 
 using Endian = llvm::support::endianness;
 
+//todo: proper ARM, X86_32, ARM64 support
 class ElfDecoder
 {
 public:
@@ -198,6 +201,52 @@ public:
 		U64 size; // st_size
 	};
 
+	struct ElfRel32
+	{
+		U32 offset; // r_offset
+		U32 info; // r_info
+
+		U32 sym() { return info >> 8; }
+		U8 type() { return U8(info); }
+		U32 cinfo() { return (sym() << 8) + type(); }
+	};
+	struct ElfRel64
+	{
+		U64 offset; // r_offset
+		U64 info; // r_info
+
+		U64 sym() { return info >> 32; }
+		U32 type() { return U32(info); }
+		U32 cinfo() { return (U64(sym()) << 32) + type(); }
+		U64 typeData() { return (info << 32) >> 40; }
+		U64 typeId() { return (info << 56) >> 56; }
+		U64 typeInfo() { return (typeData() << 8) + type(); }
+	};
+
+	struct ElfRela32
+	{
+		U32 offset; // r_offset
+		U32 info; // r_info
+		I32 addend; // r_addend
+
+		U32 sym() { return info >> 8; }
+		U8 type() { return U8(info & 0xff); }
+		U32 cinfo() { return (sym() << 8) + type(); }
+	};
+	struct ElfRela64
+	{
+		U64 offset; // r_offset
+		U64 info; // r_info
+		I64 addend; // r_addend
+
+		U64 sym() { return info >> 32; }
+		U32 type() { return U32(info & 0xffffffff); }
+		U32 cinfo() { return (U64(sym()) << 32) + type(); }
+		U64 typeData() { return (info << 32) >> 40; }
+		U64 typeId() { return (info << 56) >> 56; }
+		U64 typeInfo() { return (typeData() << 8) + type(); }
+	};
+
 
 	class SectionHeader
 	{
@@ -214,13 +263,15 @@ public:
 		U64 align;
 		U64 entrySize;
 
+		char* data;
+
 		SectionHeader() = default;
-		SectionHeader(char* const _begin, const UInt _bitwidth, char* const _sectionNames) : begin(_begin)
+		SectionHeader(char* const _begin, const UInt _bitwidth, char* const _sectionNames, char* const _fileBegin) : begin(_begin)
 		{
 			if (_bitwidth == 64)
 			{
 				ElfSectionHeader64* header = (ElfSectionHeader64*)begin;
-				
+
 				name = _sectionNames + header->name;
 				type = header->type;
 				flags = header->flags;
@@ -230,6 +281,8 @@ public:
 				info = header->info;
 				align = header->align;
 				entrySize = header->entrySize;
+
+				data = _fileBegin + offset;
 			}
 			else
 			{
@@ -244,46 +297,53 @@ public:
 				info = header->info;
 				align = header->align;
 				entrySize = header->entrySize;
+
+				data = _fileBegin + offset;
 			}
-		
+
 		}
 
-		// Partially fill out section before name table is available
-		void findNameTable(char* const _begin, const UInt _bitwidth, char* const _fileBegin)
+		// Fill out section before name table is available
+		static SectionHeader findStringTable(char* const _begin, const UInt _bitwidth, char* const _fileBegin)
 		{
-			begin = _begin;
+			SectionHeader ret;
+
+			ret.begin = _begin;
 
 			if (_bitwidth == 64)
 			{
-				ElfSectionHeader64* header = (ElfSectionHeader64*)begin;
+				ElfSectionHeader64* header = (ElfSectionHeader64*)_begin;
 
-				type = header->type;
-				flags = header->flags;
-				offset = header->offset;
-				size = header->size;
-				link = header->link;
-				info = header->info;
-				align = header->align;
-				entrySize = header->entrySize;
+				ret.type = header->type;
+				ret.flags = header->flags;
+				ret.offset = header->offset;
+				ret.size = header->size;
+				ret.link = header->link;
+				ret.info = header->info;
+				ret.align = header->align;
+				ret.entrySize = header->entrySize;
+				ret.data = _fileBegin + ret.offset;
 
-				name = _fileBegin + offset + header->name;
+				ret.name = ret.data + header->name;
 			}
 			else
 			{
-				ElfSectionHeader32* header = (ElfSectionHeader32*)begin;
+				ElfSectionHeader32* header = (ElfSectionHeader32*)_begin;
 
-				type = header->type;
-				flags = header->flags;
-				offset = header->offset;
-				size = header->size;
-				link = header->link;
-				info = header->info;
-				align = header->align;
-				entrySize = header->entrySize;
+				ret.type = header->type;
+				ret.flags = header->flags;
+				ret.offset = header->offset;
+				ret.size = header->size;
+				ret.link = header->link;
+				ret.info = header->info;
+				ret.align = header->align;
+				ret.entrySize = header->entrySize;
+				ret.data = _begin + ret.offset;
 
-				name = _fileBegin + offset + header->name;
+				ret.name = _fileBegin + ret.offset + header->name;
 			}
-
+			
+			return ret;
 		}
 	};
 
@@ -299,7 +359,7 @@ public:
 		EnumVal visibility;
 		SectionHeader* def;
 
-		Symbol(char* const _begin, const UInt _bitwidth, char* const _sectionNames, std::vector<SectionHeader>& _sectionHeaderTable, char* const _text) : begin(_begin)
+		Symbol(char* const _begin, const UInt _bitwidth, char* const _sectionNames, std::vector<SectionHeader*>& _sectionHeaderTable, char* const _text) : begin(_begin)
 		{
 			if (_bitwidth == 64)
 			{
@@ -310,7 +370,7 @@ public:
 				size = sym->size;
 				info = sym->info;
 				visibility = sym->other;
-				def = sym->sectionHeaderIndex == 0xFFF1 ? _sectionHeaderTable.data() : _sectionHeaderTable.data() + sym->sectionHeaderIndex;
+				def = sym->sectionHeaderIndex == 0xFFF1 ? nullptr : *(_sectionHeaderTable.data() + sym->sectionHeaderIndex);
 			}
 			else
 			{
@@ -321,7 +381,58 @@ public:
 				size = sym->size;
 				info = sym->info;
 				visibility = sym->other;
-				def = sym->sectionHeaderIndex == 0xFFF1 ? _sectionHeaderTable.data() : _sectionHeaderTable.data() + sym->sectionHeaderIndex;
+				def = sym->sectionHeaderIndex == 0xFFF1 ? nullptr : *(_sectionHeaderTable.data() + sym->sectionHeaderIndex);
+			}
+		}
+	};
+
+	class Relocation
+	{
+	public:
+		char* begin;
+
+		char* location;
+		U64 info;
+		U64 addend;
+
+		U64 symbolIndex;
+		Symbol* symbol;
+
+		Relocation(char* const _begin, const UInt _bitwidth, char* const symbolTable, char* const section) : begin(_begin)
+		{
+			if (_bitwidth == 64)
+			{
+				ElfRela64* rela = (ElfRela64*)begin;
+				
+				location = section + rela->offset;
+				info = rela->info;
+				addend = rela->addend;
+
+				symbolIndex = rela->sym();
+
+				U64 test = rela->typeId();
+				llvm::ELF::R_X86_64_PLT32;
+				switch (rela->type())
+				{
+				case llvm::ELF::R_X86_64_GOTPC64: // 64 bit offset to GOT
+				{
+					U64 a1 = rela->addend;
+					U64 a2 = rela->offset;
+					nop();
+				}
+				case llvm::ELF::R_X86_64_GOTOFF64: // 64-bit PC relative offset to GOT
+				{
+					nop();
+				}
+				};
+			}
+			else
+			{
+				ElfRela32* rela = (ElfRela32*)begin;
+
+				location = symbolTable + rela->offset;
+				info = rela->info;
+				addend = rela->addend;
 			}
 		}
 	};
@@ -336,27 +447,31 @@ public:
 	Endian endian;
 	EnumVal type;
 	EnumVal isa;
-	char* entry; // Does not appear in libraries used by Evergreen
-	char* programHeader; // Does not appear in libraries used by Evergreen
 	char* sectionHeaderTable; // Pointer to an array of raw section headers
 	U32 flags;
 	U16 programHeaderEntrySize;
 	U16 programHeaderSize; // Number of entries in program header table
 	U16 sectionHeaderEntrySize;
 	U16 sectionHeaderSize; // Number of entries in section header table	
-	
-	SectionHeader sectionNameTableHeader;
-	SectionHeader* stringTableHeader; // .strtab
+
+	//SectionHeader sectionNameTableHeader;
+	/*SectionHeader* stringTableHeader; // .strtab
 	SectionHeader* symbolTableHeader; // .symtab
 	SectionHeader* textHeader; // .text
+	SectionHeader* relaTextTableHeader; // .rela.text
+	SectionHeader* staticDataHeader; // .rodata*/
 
-	char* sectionNameTable; // Pointer to array of null-terminated strings end-to-end
-	char* stringTable; // .strtab
-	Symbol* symbolTable; // .symtab
+	//char* sectionNameTable; // Pointer to array of null-terminated strings end-to-end
+	/*char* stringTable; // .strtab
+	char* symbolTable; // .symtab
 	char* text; // .text
+	char* relaTextTable;  // .rela.text
+	char* staticData; // .rodata*/
 
-	std::vector<SectionHeader> sections;
+	std::map<std::string, SectionHeader> sections;
+	std::vector<SectionHeader*> sectionsList; // todo: boost multi-index
 	std::vector<Symbol> symbols;
+	std::vector<Relocation> relocations;
 
 
 
@@ -367,8 +482,8 @@ public:
 		ELFHeader64* header = (ELFHeader64*)begin;
 
 		assert(begin[0] == 0x7F); // Verify magic number
-		assert(begin[1] == 'E'); 
-		assert(begin[2] == 'L'); 
+		assert(begin[1] == 'E');
+		assert(begin[2] == 'L');
 		assert(begin[3] == 'F');
 		bitwidth = header->format * 32;
 		endian = header->endian == 1 ? Endian::little : Endian::big;
@@ -378,11 +493,9 @@ public:
 		type = header->type; // ELF begin type (Should be llvm::ELF::ET_x)
 		isa = isaLookupTable.at(header->isa);
 		assert(header->version2 == 1); // Verify version 1
-		
+
 		if (bitwidth == 64)
 		{
-			entry = begin + header->entry != 0 ? begin + header->entry : nullptr;
-			programHeader = header->programHeader != 0 ? begin + header->programHeader : nullptr;
 			sectionHeaderTable = header->sectionHeader != 0 ? begin + header->sectionHeader : nullptr;
 			flags = header->flags;
 			assert(header->headerSize == 64);
@@ -390,14 +503,13 @@ public:
 			programHeaderSize = header->programHeaderSize;
 			sectionHeaderEntrySize = header->sectionHeaderEntrySize;
 			sectionHeaderSize = header->sectionHeaderSize;
-			sectionNameTableHeader.findNameTable(sectionHeaderTable + (header->sectionNameEntry * sectionHeaderEntrySize), bitwidth, begin);
+			auto inserted = sections.insert({ ".strtab", SectionHeader::findStringTable(sectionHeaderTable + (header->sectionNameEntry * sectionHeaderEntrySize), bitwidth, begin) });
+			sectionsList.push_back(&inserted.first->second);
 		}
 		else // 32 bit
 		{
 			ELFHeader32* header32 = (ELFHeader32*)begin;
 
-			entry = begin + header32->entry != 0 ? begin + header32->entry : nullptr;
-			programHeader = header32->programHeader != 0 ? begin + header32->programHeader : nullptr;
 			sectionHeaderTable = header32->sectionHeader != 0 ? begin + header32->sectionHeader : nullptr;
 			flags = header32->flags;
 			assert(header32->headerSize == 52);
@@ -405,35 +517,57 @@ public:
 			programHeaderSize = header32->programHeaderSize;
 			sectionHeaderEntrySize = header32->sectionHeaderEntrySize;
 			sectionHeaderSize = header32->sectionHeaderSize;
-			sectionNameTableHeader.findNameTable(sectionHeaderTable + (header32->sectionNameEntry * sectionHeaderEntrySize), bitwidth, begin);
+			auto inserted = sections.insert({ ".strtab", SectionHeader::findStringTable(sectionHeaderTable + (header->sectionNameEntry * sectionHeaderEntrySize), bitwidth, begin) });
+			sectionsList.push_back(&inserted.first->second);
 		}
-
-		sectionNameTable = begin + sectionNameTableHeader.offset;
 
 		// Parse section headers (program headers will never appear)
 		for (auto i : ContiguousRange(0, (int)sectionHeaderSize))
 		{
-			sections.push_back(SectionHeader(sectionHeaderTable + (i * sectionHeaderEntrySize), bitwidth, sectionNameTable));
-			std::cout << "Section: " << i << " Name: " << sections[i].name << '\n';
+			SectionHeader newSection(sectionHeaderTable + (i * sectionHeaderEntrySize), bitwidth, sections[".strtab"].data, begin);
+			auto inserted = sections.insert({ newSection.name, newSection });
+			sectionsList.push_back(&inserted.first->second);
+			std::cout << "Section: " << i << " Name: " << newSection.name << '\n';
 		}
 
-		symbolTableHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return lhs.type == llvm::ELF::SHT_SYMTAB; });
-		stringTableHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return lhs.type == llvm::ELF::SHT_STRTAB; });
-		textHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) 
-			{ return (lhs.type == llvm::ELF::SHT_PROGBITS) && (lhs.flags & (llvm::ELF::SHF_EXECINSTR | llvm::ELF::SHF_ALLOC)); });
+		/*symbolTableHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return strcmp(lhs.name, ".symtab") == 0; });
+		stringTableHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return strcmp(lhs.name, ".strtab") == 0; });
+		textHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return strcmp(lhs.name, ".text") == 0; });
+		relaTextTableHeader = &*std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return strcmp(lhs.name, ".rela.text") == 0; });
+		staticDataHeader = std::find_if(sections.begin(), sections.end(), [](const SectionHeader& lhs) { return strcmp(lhs.name, ".rodata") == 0; })._Ptr;
 
-		symbolTable = (Symbol*)(begin + symbolTableHeader->offset);
+		symbolTable = begin + symbolTableHeader->offset;
 		stringTable = begin + stringTableHeader->offset;
 		text = begin + textHeader->offset;
+		relaTextTable = begin + relaTextTableHeader->offset;
+		staticData = begin + staticDataHeader->offset;*/
 
-		// Parse symbols
-		for (auto i : ContiguousRange(0, (int)(symbolTableHeader->size / (bitwidth == 64 ? sizeof(ElfSymbol64) : sizeof(ElfSymbol32)))))
+		// Parse relocations
+		for (auto i : ContiguousRange(0, (int)(sections[".rela.text"].size / (bitwidth == 64 ? sizeof(ElfRela64) : sizeof(ElfRela32)))))
 		{
-			symbols.push_back(Symbol((char*)(symbolTable) + (i * (bitwidth == 64 ? sizeof(ElfSymbol64) : sizeof(ElfSymbol32))), bitwidth, sectionNameTable, sections, text));
-			std::cout << "Symbol: " << i << " Name: " << symbols[i].name << " Associated section: " << symbols[i].def->name << '\n';
+			relocations.push_back(Relocation((char*)(sections[".rela.text"].data)+(i * (bitwidth == 64 ? sizeof(ElfRela64) : sizeof(ElfRela32))), bitwidth, sections[".symtab"].data, sections[".text"].data));
+			 
 		}
 
-		
+		// Parse symbols
+		for (auto i : ContiguousRange(0, (int)(sections[".symtab"].size / (bitwidth == 64 ? sizeof(ElfSymbol64) : sizeof(ElfSymbol32)))))
+		{
+			symbols.push_back(Symbol(sections[".symtab"].data+(i * (bitwidth == 64 ? sizeof(ElfSymbol64) : sizeof(ElfSymbol32))), bitwidth, sections[".strtab"].data, sectionsList, sections[".text"].data));
+			std::cout << "Symbol: " << i << " Name: " << symbols[i].name << " Associated section: " << (symbols[i].def == nullptr ? "" : symbols[i].def->name) << '\n';
+		}
+
+
+
+		// Give relocations links to completed symbols for debugging
+		for (auto i : ContiguousRange(0, (int)(sections[".rela.text"].size / (bitwidth == 64 ? sizeof(ElfRela64) : sizeof(ElfRela32)))))
+		{
+			relocations[i].symbol = &symbols[relocations[i].symbolIndex];
+			std::cout << "Relocation: " << i << " Info: " << relocations[i].info << " Name: " << relocations[i].symbol->name << '\n';
+		}
+
+		char* str = std::find_if(symbols.begin(), symbols.end(), [](const ElfDecoder::Symbol& lhs) { std::cout << ' ' << lhs.info; return strcmp(lhs.name, "?EvgMain@@YAHXZ") == 0; })->value;
+
+		nop();
 	}
 };
 const std::map<U16, EnumVal> ElfDecoder::isaLookupTable = { {0x00, llvm::Triple::UnknownArch}, {0x03, llvm::Triple::x86}, {0x3E, llvm::Triple::x86_64} };
@@ -492,6 +626,16 @@ int main(int argc, char** argv)
 		pm.run(f, am);
 	}*/
 
+	mod->eraseNamedMetadata(mod->getNamedMetadata("llvm.linker.options"));
+	/*auto meta = mod->getNamedMetadata("llvm.linker.options");
+	meta->dump();
+
+	for (const auto* i : meta->operands())
+	{
+		std::cout << '\n';
+		llvm::cast<llvm::MDNode>(i)->dump();
+	}*/
+
 
 	llvm::legacy::PassManager lpm;
 
@@ -499,26 +643,25 @@ int main(int argc, char** argv)
 	llvm::raw_svector_ostream outstream(outbuf);
 	std::error_code ec;
 	//llvm::raw_fd_ostream outstreamF("C:/Users/nickk/source/repos/Testing1/EvergreenTest/EvergreenTestMC.o", ec, llvm::sys::fs::FileAccess::FA_Write);
-	//llvm::raw_pwrite_stream* outstream = (llvm::raw_pwrite_stream*)&outstreamF;
+	//llvm::raw_pwrite_stream& outstream = *(llvm::raw_pwrite_stream*)&outstreamF;
 
 	bool supported = targetMachine->addPassesToEmitFile(lpm, outstream, nullptr, llvm::CGFT_ObjectFile);
 	lpm.run(*mod);
 
 
+	std::ofstream ofs("C:/Users/nickk/source/repos/Testing1/EvergreenTest/EvergreenTestMC.o", std::ofstream::trunc | std::ofstream::binary);
+	ofs.write(outbuf.data(), outbuf.size());
+	ofs.close();
+
 	using MathFn = int(*)(int, int);
+	using EvgMainPtr = int(*)();
 
 	ElfDecoder decoder(outbuf.data(), outbuf.size());
 	decoder.parse();
 
 	ElfDecoder::Symbol* call = &*std::find_if(decoder.symbols.begin(), decoder.symbols.end(), [](const ElfDecoder::Symbol& lhs) {
-		std::cout << ' ' << lhs.info; return strcmp(lhs.name, "math") == 0; });
+		std::cout << ' ' << lhs.info; return strcmp(lhs.name, "?EvgMain@@YAHXZ") == 0; });
 	char* region = call->value;
-
-
-	//UInt oldVal;
-	//VirtualProtect(call, 100, PAGE_EXECUTE_READWRITE, (PDWORD)&oldVal);
-
-	//std::cout << "Val: " << call(5, 6);
 
 
 
@@ -533,118 +676,15 @@ int main(int argc, char** argv)
 	DWORD dummy;
 	VirtualProtect(buffer, call->size + 50, PAGE_EXECUTE_READWRITE, &dummy);
 
-	MathFn toCall = (MathFn)buffer;
+	EvgMainPtr toCall = (EvgMainPtr)buffer;
 
 	//VirtualFree(buffer, 0, MEM_RELEASE);
 
 	U64* b = (U64*)buffer;
 
-	std::cout << toCall(5, 6) << "\n";
+	std::cout << '\n' << toCall() << "\n";
 
 
-	
-	//using intFn = int(*)();
-	/*
-
-	auto itr = std::find(outstring.begin(), outstring.end(), 0b11001011);
-
-	mathFn call = (mathFn)(outstring.data() + 489);
-
-	UInt oldVal;
-	VirtualProtect(call, 100, PAGE_EXECUTE_READWRITE, (PDWORD)&oldVal);
-	//std::cout << call(2, 4);*/
-
-	/*
-	llvm::LLVMTargetMachine* ltargetMachine = static_cast<llvm::LLVMTargetMachine*>(targetMachine);
-
-	// Add common CodeGen passes.
-	llvm::MachineModuleInfoWrapperPass* MMIWP = new llvm::MachineModuleInfoWrapperPass(ltargetMachine);
-	llvm::TargetPassConfig* PassConfig = ltargetMachine->createPassConfig(lpm);
-	PassConfig->setDisableVerify(false);
-	lpm.add(PassConfig);
-	lpm.add(MMIWP);
-
-	assert(!PassConfig->addISelPasses());
-	PassConfig->addMachinePasses();
-	PassConfig->setInitialized();
-
-
-	//    llvm::LLVMTargetMachine::addPassesToGenerateCode(targetMachine, lpm, false, *MMIWP);
-	//if (!PassConfig)
-	//    return true;
-	//assert(llvm::TargetPassConfig::willCompleteCodeGenPipeline() &&
-	//    "Cannot emit MC with limited codegen pipeline");
-
-	llvm::MCContext* Ctx = &MMIWP->getMMI().getContext();
-	targetMachine->getObjFileLowering()->Initialize(*Ctx, *targetMachine);
-	//llvm::MCContext* Ctx = &targetMachine->getObjFileLowering()->getContext();
-	if (targetMachine->Options.MCOptions.MCSaveTempLabels)
-		Ctx->setAllowTemporaryLabels(false);
-
-	// Create the code emitter for the target if it exists.  If not, .o file
-	// emission fails.
-	const llvm::MCSubtargetInfo& STI = *targetMachine->getMCSubtargetInfo();
-	const llvm::MCRegisterInfo& MRI = *targetMachine->getMCRegisterInfo();
-	llvm::MCCodeEmitter* MCE = target->createMCCodeEmitter(*targetMachine->getMCInstrInfo(), MRI, *Ctx);
-	llvm::MCAsmBackend* MAB = target->createMCAsmBackend(STI, MRI, targetMachine->Options.MCOptions);
-
-	const llvm::Triple& triple = targetMachine->getTargetTriple();
-	
-	//std::unique_ptr<llvm::MCStreamer> AsmStreamer(getTarget().createMCObjectStreamer(
-	//    triple, *Ctx, std::unique_ptr<MCAsmBackend>(MAB), MAB->createObjectWriter(Out),
-	//    std::unique_ptr<MCCodeEmitter>(MCE), STI, Options.MCOptions.MCRelaxAll,
-	//    Options.MCOptions.MCIncrementalLinkerCompatible,
-	//     true));
-
-	// Create the AsmPrinter, which takes ownership of AsmStreamer if successful.
-	//llvm::FunctionPass* Printer =
-	//    getTarget().createAsmPrinter(*this, std::move(AsmStreamer));
-	//if (!Printer)
-	//    return true;
-
-	//PM.add(Printer);
-	//PM.add(createFreeMachineFunctionPass());
-
-	//auto streamer = target->createAsmStreamer(Ctx, outstream, true, false, );
-	std::unique_ptr<llvm::MCStreamer> streamer(target->createMCObjectStreamer(triple, *Ctx, std::unique_ptr<llvm::MCAsmBackend>(MAB), MAB->createObjectWriter(*outstream),
-		std::unique_ptr<llvm::MCCodeEmitter>(MCE), STI, targetMachine->Options.MCOptions.MCRelaxAll, targetMachine->Options.MCOptions.MCIncrementalLinkerCompatible, true));
-	llvm::AsmPrinter* printer = target->createAsmPrinter(*targetMachine, std::move(streamer));
-	lpm.add((llvm::FunctionPass*)printer);
-	lpm.add(llvm::createFreeMachineFunctionPass());
-
-	bool modified = lpm.run(*mod);
-	*/
-
-
-
-	//lpm.add(llvm::createFreeMachineFunctionPass());
-
-	//auto mmi = llvm::MachineModuleInfo(ltargetMachine);
-	//unsigned int counter = 1;
-	//for (auto& mfunBase : mod->functions())
-	//{
-	//llvm::Function* mfunBase = mod->getFunction("math");
-	//auto st = targetMachine->getSubtargetImpl(*mfunBase);
-	//llvm::MachineFunction mfun = llvm::MachineFunction(*mfunBase, *ltargetMachine, *st, counter, mmi);
-
-	//std::cout << mfun.getName().data() << '\n';
-	//mfun.dump();
-	//printer->SetupMachineFunction(mfun);
-	//std::cout << "Functions: " << mod->getFunctionList().size() << '\n';
-	
-	//std::cout << "Functions: " << mod->getFunctionList().size() << '\n';
-	//printer->runOnMachineFunction(mfun);
-	//(llvm::FunctionPass*)(printer)->runOnFunction(mfunBase);
-
-	//lpm.add(llvm::createMachineFunctionPrinterPass(llvm::outs()));
-
-	//mfun.dump();
-	//assert(!modified);
-
-	//counter++;
-	//}
-
-	
 
 	return EXIT_SUCCESS;
 }

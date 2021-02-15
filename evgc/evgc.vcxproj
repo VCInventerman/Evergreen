@@ -91,14 +91,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\include;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
     <LibraryPath>E:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
     <ExecutablePath>E:\dev\llvm-project\build\Debug\bin;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgc\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\include;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\nickk\source\repos\Evergreen\evgc\src;$(SourcePath)</SourcePath>
     <LibraryPath>E:\dev\llvm-project\build\Release\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>

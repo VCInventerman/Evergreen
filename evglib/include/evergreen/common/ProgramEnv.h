@@ -1,8 +1,8 @@
 #pragma once
 
-#include "types.h"
-#include "../containers/Vector.h"
-#include "../string/String.h"
+#include "evergreen/common/types.h"
+#include "evergreen/containers/Vector.h"
+#include "evergreen/string/String.h"
 
 using ExitCode = Int;
 

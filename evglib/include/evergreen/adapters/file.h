@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../common/types.h"
+#include "evergreen/common/types.h"
 
-#include "../string/String.h"
+#include "evergreen/string/String.h"
 
 /*
 A copy of a file in memory that can watch it and be committed back
@@ -40,14 +40,23 @@ namespace evg
 			return String((Char*)(&*str.begin()));
 		}
 
+		Bool exists()
+		{
+			return std::filesystem::exists(raw.data());
+		}
+
 		Path() = default;
 		Path(const String _raw) : raw(_raw) {}
-		Path(const Char* const _raw) : raw(_raw) {}
+		Path(CChar* const _raw) : raw(_raw) {}
 
-		operator char* ()
+		template<typename T>
+		T operator_conv() const
 		{
-			return raw;
+			return raw.operator_conv<T>();
 		}
+
+		EVG_CXX_CAST(CChar*)
+		EVG_CXX_CAST_ADAPT(std::filesystem::path, CChar*)
 
 		bool operator< (const Path& rhs) const { return raw < rhs.raw; }
 	};
@@ -109,7 +118,7 @@ namespace evg
 		bool isLoaded() { return true; }
 		bool load()
 		{ 
-			size = std::filesystem::file_size(std::filesystem::path(path.raw.operator char *()));
+			size = std::filesystem::file_size(conv(path, std::filesystem::path));
 			data = (char*)malloc(size + 1);
 			file.read(data, size);
 			data[size] = '\0';

@@ -82,12 +82,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgruntime\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib;E:\dev\llvm-project\lld\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgruntime\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\include;E:\dev\llvm-project\lld\include;$(IncludePath)</IncludePath>
     <LibraryPath>E:\dev\llvm-project\build\Debug\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgruntime\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib;E:\dev\llvm-project\lld\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\nickk\source\repos\Evergreen\evgruntime\include;E:\dev\llvm-project\llvm\include;E:\dev\llvm-project\build\include;C:\Users\nickk\source\repos\Evergreen\evglib\include;E:\dev\llvm-project\lld\include;$(IncludePath)</IncludePath>
     <LibraryPath>E:\dev\llvm-project\build\Release\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -97,6 +97,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,6 +114,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,6 +131,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,6 +148,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

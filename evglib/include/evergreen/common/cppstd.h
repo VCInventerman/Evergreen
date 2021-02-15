@@ -30,9 +30,13 @@
 #include <thread>
 #include <string_view>
 #include <atomic>
+#include <charconv>
 
 
+#if __has_include(<windows.h>)
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
+
+//#include <windows.h>
+#endif

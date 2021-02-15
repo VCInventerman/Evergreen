@@ -147,6 +147,26 @@
     <ClInclude Include="cpp\common\types.h" />
     <ClInclude Include="cpp\containers\Vector.h" />
     <ClInclude Include="cpp\evglib.h" />
+    <ClInclude Include="include\evergreen\adapters\file.h" />
+    <ClInclude Include="include\evergreen\adapters\thread.h" />
+    <ClInclude Include="include\evergreen\common\alloc.h" />
+    <ClInclude Include="include\evergreen\common\ContiguousBuf.h" />
+    <ClInclude Include="include\evergreen\common\cppstd.h" />
+    <ClInclude Include="include\evergreen\common\errors.h" />
+    <ClInclude Include="include\evergreen\common\pointer.h" />
+    <ClInclude Include="include\evergreen\common\ProgramEnv.h" />
+    <ClInclude Include="include\evergreen\common\StringView.h" />
+    <ClInclude Include="include\evergreen\common\types.h" />
+    <ClInclude Include="include\evergreen\containers\DynEnum.h" />
+    <ClInclude Include="include\evergreen\containers\DynTuple.h" />
+    <ClInclude Include="include\evergreen\containers\string.h" />
+    <ClInclude Include="include\evergreen\containers\varint.h" />
+    <ClInclude Include="include\evergreen\containers\Vector.h" />
+    <ClInclude Include="include\evergreen\string\BufString.h" />
+    <ClInclude Include="include\evergreen\string\CString.h" />
+    <ClInclude Include="include\evergreen\string\ImString.h" />
+    <ClInclude Include="include\evergreen\string\String.h" />
+    <ClInclude Include="include\evergreen\string\StringFormatter.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="evg\unit.evg" />

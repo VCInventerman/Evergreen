@@ -1,5 +1,5 @@
 #pragma once
-#include "alloc.h"
+//#include "evergreen/common/alloc.h"
 
 //todo: c# like interfaces like begin() and begin.raw
 //todo: arguments in multiple orders
@@ -31,10 +31,10 @@ public:
 	{
 		return begin_raw[index];
 	}
-	RetPair<T&> sat(Size index)
-	{
-		return index > end_raw - begin_raw ? begin_raw[index] : Error("Invalid contiguous buffer index");
-	}
+	//RetPair<T&> sat(Size index)
+	//{
+	//	return index > end_raw - begin_raw ? begin_raw[index] : Error("Invalid contiguous buffer index");
+	//}
 
 	Size size()
 	{
@@ -109,7 +109,7 @@ public:
 		return begin_raw;
 	}
 
-	operator char* () { return begin_raw; }
+	operator T* () { return begin_raw; }
 };
 
 template <typename T, typename SizeT = Size>
