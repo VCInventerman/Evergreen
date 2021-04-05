@@ -100,7 +100,7 @@
 
 #include <llvm/Demangle/Demangle.h>
 
-#include "evglib.h"
+#include <evglib>
 
 using Endian = llvm::support::endianness;
 

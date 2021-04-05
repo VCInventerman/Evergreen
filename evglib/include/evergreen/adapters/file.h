@@ -17,15 +17,23 @@ namespace evg
 	class Path
 	{
 	public:
-		String raw;
+		using This = Path;
+		using Iterator = RandomContigIterator<CChar>;
+		using RevIterator = RevRandomContigIterator<CChar>;
 
+
+	public: // Access is discouraged
+		String string_raw;
+		std::filesystem::path cache_raw; // Some filesystem functions require a path formatted as the std version and with UTF-16 and a null terminator
+
+	public:
 		// Returns everything after the last /
 		ImString filename()
 		{
-			var lastSlash = raw.rfind('/');
-			Size size = raw.end() - lastSlash - 1;
+			Size lastSlash = string_raw.rfind('/');
+			Size size = lastSlash - 1;
 			ContiguousBufPtrEnd<Char> str(size);
-			std::copy(lastSlash + 1, raw.end(), str.begin());
+			std::copy(string_raw.begin() + lastSlash + 1, string_raw.end(), str.begin());
 			return String((Char*)(&*str.begin()));
 		}
 
@@ -33,32 +41,86 @@ namespace evg
 		//todo: better syntax for std::copy, like [begin,end) but in this case [begin,end]
 		ImString parentPath()
 		{
-			var lastSlash = raw.rfind('/');
-			Size size = lastSlash - raw.begin() + 1; // Capture last slash
+			var lastSlash = string_raw.rfind('/');
+			Size size = lastSlash + 1; // Capture last slash
 			ContiguousBufPtrEnd<Char> str(size);
-			std::copy(raw.begin(), lastSlash + 1, str.begin());
+			std::copy(string_raw.begin() + lastSlash + 1, string_raw.end(), str.begin());
 			return String((Char*)(&*str.begin()));
 		}
 
 		Bool exists()
 		{
-			return std::filesystem::exists(raw.data());
+			if ((size() != 0) && emptyCache())
+				updateCache();
+			return std::filesystem::exists(cache_raw);
+		}
+
+		template<typename T>
+		Path& next(const T&& add)
+		{
+			if (back() == '/')
+			{
+				*this += add;
+			}
+			else
+			{ //todo: unicode, safe
+				StringBuilder newString = StringBuilder(size() - 1 + add.size());
+			}
+
+			return *this;
 		}
 
 		Path() = default;
-		Path(const String _raw) : raw(_raw) {}
-		Path(CChar* const _raw) : raw(_raw) {}
+		Path(const String _raw) : string_raw(_raw) {}
+		Path(const StringBuilder& _raw) : string_raw(_raw) {}
+		Path(CChar* const _raw) : string_raw(_raw) {}
+		Path(const Path& rhs) : string_raw(rhs.string_raw) {}
+		Path(const Path&& rhs) : string_raw(std::move(rhs.string_raw)) {}
+
+		Path operator+= (const Path& rhs)
+		{
+			string_raw += rhs.string_raw;
+			invalidateCache();
+		}
+
+		void invalidateCache()
+		{
+			cache_raw = "";
+		}
+
+		void updateCache()
+		{
+			cache_raw = std::string(data(), size());
+		}
+
+		bool emptyCache()
+		{
+			return cache_raw.empty();
+		}
 
 		template<typename T>
 		T operator_conv() const
 		{
-			return raw.operator_conv<T>();
+			return string_raw.operator_conv<T>();
 		}
 
 		EVG_CXX_CAST(CChar*)
 		EVG_CXX_CAST_ADAPT(std::filesystem::path, CChar*)
 
-		bool operator< (const Path& rhs) const { return raw < rhs.raw; }
+		bool operator< (const Path& rhs) const { return string_raw < rhs.string_raw; }
+
+		Path& operator= (const evg::Path& rhs) { *this = Path(rhs); }
+		Path& operator= (const evg::StringBuilder& rhs) { *this = Path(rhs); }
+		Path& operator= (CChar* rhs) { *this = Path(rhs); }
+
+		ContiguousBufPtrEnd<CChar> data() const { return string_raw.data(); }
+		Iterator begin() const { return data().begin(); }
+		Iterator end() const { return data().end(); }
+		RevIterator rbegin() const { return data().rbegin(); }
+		RevIterator rend() const { return data().rend(); }
+		CChar& back() const { return *(end() - 1); }
+
+		Size size() const { return string_raw.size(); }
 	};
 
 

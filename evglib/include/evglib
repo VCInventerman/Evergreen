@@ -1,15 +1,33 @@
 #pragma once
 
 #define EVG_DISABLE_RETERROR
-#define EVG_BOOST
+#define EVG_LIB_BOOST
+#define EVG_LIB_LOG
+//#define EVG_LIB_LLVM
 
-#ifdef EVG_BOOST
-#include "evergreen/adapters/thread.h"
+#ifdef EVG_LIB_BOOST
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/sinks/debug_output_backend.hpp>
+
+#include <boost/asio.hpp>
 #endif
 
-#include "evergreen/string/String.h"
-#include "evergreen/common/ProgramEnv.h"
-#include "evergreen/adapters/file.h"
-#include "evergreen/containers/varint.h"
+#include "evergreen/common/cppstd.h"
+#include "evergreen/common/types.h" // No C++ libraries can be included after this point because a number of preprocessor macros in types.h will interfere
 
-#include "evergreen/common/types.h"
+#include "evergreen/containers/Tuple.h"
+#include "evergreen/common/algorithm.h"
+#include "evergreen/string/String.h"
+#include "evergreen/adapters/file.h"
+#include "evergreen/common/ProgramEnv.h"
+#include "evergreen/containers/varint.h"
+#include "evergreen/common/yaml.h"
+
+#ifdef EVG_LIB_BOOST
+#include "evergreen/adapters/thread.h"
+#endif

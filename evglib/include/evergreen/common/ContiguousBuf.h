@@ -1,239 +1,306 @@
 #pragma once
 //#include "evergreen/common/alloc.h"
 
-//todo: c# like interfaces like begin() and begin.raw
-//todo: arguments in multiple orders
-//todo: iterator classes
-//todo: fake private that only works with scope and warnings
-// Interface ContiguousBuf implements begin and end
-template <typename T>
-class ContiguousBuf
+
+namespace evg
 {
-public:
-	T* getBegin();
-	T* getEnd();
-};
 
-//todo: ownership and auto-delete
-template <typename T>
-class ContiguousBufPtrEnd
-{
-public:
-	T* begin_raw;
-	T* end_raw;
-
-	ContiguousBufPtrEnd() = default;
-	ContiguousBufPtrEnd(T* const _begin, T* const _end) : begin_raw(_begin), end_raw(_end) {}
-	ContiguousBufPtrEnd(T* const _begin, const Size _size) : begin_raw(_begin), end_raw(_begin + _size) {}
-	ContiguousBufPtrEnd(const Size _size) : begin_raw(new Char[_size]), end_raw(begin_raw + _size) {}
-
-	T& at(Size index)
-	{
-		return begin_raw[index];
-	}
-	//RetPair<T&> sat(Size index)
-	//{
-	//	return index > end_raw - begin_raw ? begin_raw[index] : Error("Invalid contiguous buffer index");
-	//}
-
-	Size size()
-	{
-		return end_raw - begin_raw;
-	}
-
-	class Iterator
+	template <typename T>
+	class RandomContigIterator
 	{
 	public:
+		using This = typename RandomContigIterator<T>;
+
+		using iterator_category = std::random_access_iterator_tag;
+		using value_type = typename T;
+		using difference_type = Offset;
+		using pointer = typename T*;
+		using reference = typename T&;
+
+	public: // Access is discouraged
+		T* ptr;
+
+	public:
+		RandomContigIterator() : ptr() {}
+		RandomContigIterator(T* const _ptr) : ptr(_ptr) {}
+
+
+		This& operator++ () { ++ptr; return *this; }
+		This operator++ (int) { This ret = *this; ++(*this); return ret; }
+
+		This& operator-- () { --ptr; return *this; }
+		This operator-- (int) { This ret = *this; --(*this); return ret; }
+
+		bool operator==(This lhs) const { return ptr == lhs.ptr; }
+		bool operator!=(This lhs) const { return !(*this == lhs); }
+
+		I64 operator-(const This& rhs) const { return ptr - rhs.ptr; }
+		I64 operator+(const This& rhs) const { return ptr + rhs.ptr; }
+		This operator-(const Size rhs) const { return ptr - rhs; }
+		This operator+(const Size rhs) const { return ptr + rhs; }
+
+		This& operator+=(const This& rhs) { ptr += rhs.ptr; return *this; }
+		This& operator-=(const This& rhs) { ptr -= rhs.ptr; return *this; }
+		This& operator+=(const Size rhs) { ptr += rhs; return *this; }
+		This& operator-=(const Size rhs) { ptr -= rhs; return *this; }
+
+		bool operator<(const This& rhs) { return ptr < rhs.ptr; }
+		bool operator>(const This& rhs) { return ptr > rhs.ptr; }
+
+		T& operator*() const noexcept { return *ptr; }
+	};
+
+	template <typename T>
+	class RevRandomContigIterator
+	{
+	public:
+		using This = RevRandomContigIterator<T>;
 		using iterator_category = std::random_access_iterator_tag;
 		using value_type = T;
 		using difference_type = std::ptrdiff_t;
-		using pointer = T*;
-		using reference = T&;
 
+	public: // Access is discouraged
 		T* ptr;
 
-		Iterator(T* const _ptr) : ptr(_ptr) {}
+	public:
+		RevRandomContigIterator() : ptr() {}
+		RevRandomContigIterator(T* const _ptr) : ptr(_ptr) {}
 
-		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (int) { Iterator ret = *this; ++(*this); return ret; }
 
-		Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (int) { Iterator ret = *this; --(*this); return ret; }
+		RevRandomContigIterator& operator++ () { --ptr; return *this; }
+		RevRandomContigIterator operator++ (int) { This ret = *this; --(*this); return ret; }
 
-		bool operator==(Iterator lhs) const { return ptr == lhs.ptr; }
-		bool operator!=(Iterator lhs) const { return !(*this == lhs); }
+		RevRandomContigIterator& operator-- () { ++ptr; return *this; }
+		RevRandomContigIterator operator-- (int) { This ret = *this; ++(*this); return ret; }
 
-		I64 operator-(const Iterator& rhs) const { return ptr - rhs.ptr; }
-		I64 operator+(const Iterator& rhs) const { return ptr + rhs.ptr; }
+		bool operator==(This lhs) const { return ptr == lhs.ptr; }
+		bool operator!=(This lhs) const { return !(*this == lhs); }
+
+		I64 operator-(const This& rhs) const { return ptr + rhs.ptr; }
+		I64 operator+(const This& rhs) const { return ptr - rhs.ptr; }
+		This& operator-(const Size& rhs) const { ptr += rhs; return *this; }
+		This& operator+(const Size& rhs) const { ptr -= rhs; return *this; }
 
 		T& operator*() { return *ptr; }
 	};
 
-
-	Iterator begin()
-	{
-		return begin_raw;
-	}
-	Iterator end()
-	{
-		return end_raw;
-	}
-
-
-	class RevIterator
+	// Templated contiguous range - Only requires one int for counter
+	template <Int begin_raw, Int end_raw, typename CountT = Int>
+	class TContiguousRange
 	{
 	public:
-		T* ptr;
+		class Iterator
+		{
+		public:
+			CountT counter;
 
-		RevIterator(T* const _ptr) : ptr(_ptr) {}
+			Iterator(const Int _counter = begin_raw) : counter(_counter) {}
 
-		RevIterator& operator++ () { --ptr; return *this; }
-		RevIterator operator++ (int) { RevIterator ret = *this; --(*this); return ret; }
+			Iterator& operator++ () { ++counter; return *this; }
+			Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
 
-		RevIterator& operator-- () { ++ptr; return *this; }
-		RevIterator operator-- (int) { RevIterator ret = *this; ++(*this); return ret; }
+			Iterator& operator-- () { --counter; return *this; }
+			Iterator operator--(int) { Iterator ret = *this; --(*this); return ret; }
 
-		bool operator==(RevIterator lhs) const { return ptr == lhs.ptr; }
-		bool operator!=(RevIterator lhs) const { return !(*this == lhs); }
+			bool operator==(Iterator lhs) const { return counter == lhs.counter; }
+			bool operator!=(Iterator lhs) const { return !(*this == lhs); }
 
-		T& operator*() { return *ptr; }
+			CountT operator*() { return counter; }
+		};
+
+		Iterator begin() { return begin_raw; }
+		Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
+	};
+
+	template <typename CountT = Int>
+	class ContiguousRange
+	{
+	public:
+		CountT begin_raw;
+		CountT end_raw;
+
+		class Iterator
+		{
+		public:
+			CountT counter;
+
+			Iterator(const CountT _counter) : counter(_counter) {}
+
+			Iterator& operator++ () { ++counter; return *this; }
+			Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
+
+			Iterator& operator-- () { --counter; return *this; }
+			Iterator operator--(int) { Iterator ret = *this; --(*this); return ret; }
+
+			bool operator==(Iterator lhs) const { return counter == lhs.counter; }
+			bool operator!=(Iterator lhs) const { return !(*this == lhs); }
+
+			CountT operator*() { return counter; }
+		};
+
+		ContiguousRange(const CountT _begin_raw, const CountT _end_raw) : begin_raw(_begin_raw), end_raw(_end_raw) {}
+		ContiguousRange(const CountT _end_raw) : begin_raw(0), end_raw(_end_raw) {}
+
+		Iterator begin() { return begin_raw; }
+		Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
+	};
+
+	using Range = ContiguousRange<>;
+
+
+
+
+	//todo: c# like interfaces like begin() and begin.raw
+	//todo: arguments in multiple orders
+	//todo: iterator classes
+	//todo: fake private that only works with scope and warnings
+	// Interface ContiguousBuf implements begin and end
+	template <typename T>
+	class ContiguousBuf
+	{
+	public:
+		T* getBegin();
+		T* getEnd();
+	};
+
+	template <typename T>
+	class ContiguousBufPtrEnd
+	{
+	public:
+		using This = ContiguousBufPtrEnd<T>;
+		using Iterator = RandomContigIterator<T>;
+		using CIterator = RandomContigIterator<const T>;
+		using RevIterator = RevRandomContigIterator<T>;
+		using CRevIterator = RevRandomContigIterator<const T>;
+
+	public: // Access is discouraged
+		T* begin_raw;
+		T* end_raw;
+
+	public:
+		ContiguousBufPtrEnd() : begin_raw(nullptr), end_raw(nullptr) {}
+		ContiguousBufPtrEnd(T* const _begin, T* const _end) : begin_raw(_begin), end_raw(_end) {}
+		ContiguousBufPtrEnd(T* const _begin, const Size _size) : begin_raw(_begin), end_raw(_begin + _size) {}
+		ContiguousBufPtrEnd(const Size _size) : begin_raw(new Char[_size]), end_raw(begin_raw + _size) {}
+
+		T& at(Size index)
+		{
+			return begin_raw[index];
+		}
+		//Ret<T&> sat(Size index)
+		//{
+		//	return index > end_raw - begin_raw ? begin_raw[index] : Error("Invalid contiguous buffer index");
+		//}
+
+		Size size() const
+		{
+			return end_raw - begin_raw;
+		}
+
+		T* data() { return begin_raw; }
+		Iterator begin() { return begin_raw; }
+		Iterator end() { return end_raw; }
+		CIterator cbegin() const { return begin_raw; }
+		CIterator cend() const { return end_raw; }
+		RevIterator rbegin() { return end_raw; }
+		RevIterator rend() { return begin_raw; }
+		CRevIterator crbegin() const { return end_raw; }
+		CRevIterator crend() const { return begin_raw; }
+
+		bool valid() const
+		{
+			return (begin_raw != nullptr) && (end_raw != nullptr) && (begin_raw <= end_raw);
+		}
+
+		operator T* () { return begin_raw; }
+	};
+
+	template <typename T>
+	using Slice = ContiguousBufPtrEnd<T>;
+
+
+	template <typename T, typename SizeT = Size>
+	class ContiguousBufPtrSize
+	{
+	public:
+		T* begin_raw;
+		SizeT size_raw;
+
+		ContiguousBufPtrSize() = default;
+		ContiguousBufPtrSize(T* const _begin, T* const _end) : begin_raw(_begin), size_raw(_end - _begin) {}
+		ContiguousBufPtrSize(T* const _begin, const SizeT _size) : begin_raw(_begin), size_raw(_size) {}
+	};
+
+	template <typename T>
+	class ContiguousBufPtrUnbounded
+	{
+	public:
+		T* data_raw;
+
+		ContiguousBufPtrUnbounded() = default;
+		ContiguousBufPtrUnbounded(T* const _data) : data_raw(_data) {}
+	};
+
+	template <typename T>
+	class ContiguousBufDataEnd
+	{
+	public:
+		T* end;
+		T data[];
+	};
+
+	template <typename T, typename SizeT = Size>
+	class ContiguousBufDataSize
+	{
+	public:
+		SizeT size;
+		T data[];
 	};
 
 
-	RevIterator rbegin()
-	{
-		return end_raw;
-	}
-	RevIterator rend()
-	{
-		return begin_raw;
-	}
-
-	operator T* () { return begin_raw; }
-};
-
-template <typename T, typename SizeT = Size>
-class ContiguousBufPtrSize
-{
-public:
-	T* begin_raw;
-	SizeT size_raw;
-
-	ContiguousBufPtrSize() = default;
-	ContiguousBufPtrSize(T* const _begin, T* const _end) : begin_raw(_begin), size_raw(_end - _begin) {}
-	ContiguousBufPtrSize(T* const _begin, const SizeT _size) : begin_raw(_begin), size_raw(_size) {}
-};
-
-template <typename T>
-class ContiguousBufPtrUnbounded
-{
-public:
-	T* data_raw;
-
-	ContiguousBufPtrUnbounded() = default;
-	ContiguousBufPtrUnbounded(T* const _data) : data_raw(_data) {}
-};
-
-template <typename T>
-class ContiguousBufDataEnd
-{
-public:
-	T* end;
-	T data[];
-};
-
-template <typename T, typename SizeT = Size>
-class ContiguousBufDataSize
-{
-public:
-	SizeT size;
-	T data[];
-};
-
-
-/*
-template<long FROM, long TO>
-class Range {
-public:
-	class iterator {
-		long num = FROM;
+	/*
+	template<long FROM, long TO>
+	class Range {
 	public:
-		iterator(long _num = 0) : num(_num) {}
-		iterator& operator++() { num = TO >= FROM ? num + 1 : num - 1; return *this; }
-		iterator operator++(int) { iterator retval = *this; ++(*this); return retval; }
-		bool operator==(iterator other) const { return num == other.num; }
-		bool operator!=(iterator other) const { return !(*this == other); }
-		long operator*() { return num; }
-		// iterator traits
-		using difference_type = long;
-		using value_type = long;
-		using pointer = const long*;
-		using reference = const long&;
-		using iterator_category = std::forward_iterator_tag;
+		class iterator {
+			long num = FROM;
+		public:
+			iterator(long _num = 0) : num(_num) {}
+			iterator& operator++() { num = TO >= FROM ? num + 1 : num - 1; return *this; }
+			iterator operator++(int) { iterator retval = *this; ++(*this); return retval; }
+			bool operator==(iterator other) const { return num == other.num; }
+			bool operator!=(iterator other) const { return !(*this == other); }
+			long operator*() { return num; }
+			// iterator traits
+			using difference_type = long;
+			using value_type = long;
+			using pointer = const long*;
+			using reference = const long&;
+			using iterator_category = std::forward_iterator_tag;
+		};
+		iterator begin() { return FROM; }
+		iterator end() { return TO >= FROM ? TO + 1 : TO - 1; }
 	};
-	iterator begin() { return FROM; }
-	iterator end() { return TO >= FROM ? TO + 1 : TO - 1; }
-};
-*/
+	*/
 
-// Templated contiguous range - Only requires one int for counter
-template <Int begin_raw, Int end_raw, typename CountT = Int>
-class TContiguousRange
-{
-public:
-	class Iterator
+
+
+
+
+	template <typename CharT = Char>
+	class UnicodeIterator
 	{
 	public:
-		CountT counter;
+		using This = UnicodeIterator;
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = UniChar;
+		using difference_type = PtrDiff;
 
-		Iterator(const Int _counter = begin_raw) : counter(_counter) {}
-		
-		Iterator& operator++ () { ++counter; return *this; }
-		Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
+	public: // Access is discouraged
+		CharT* ptr;
 
-		Iterator& operator-- () { --counter; return *this; }
-		Iterator operator--(int) { Iterator ret = *this; --(*this); return ret; }
-
-		bool operator==(Iterator lhs) const { return counter == lhs.counter; }
-		bool operator!=(Iterator lhs) const { return !(*this == lhs); }
-
-		CountT operator*() { return counter; }
-	};
-
-	Iterator begin() { return begin_raw; }
-	Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
-};
-
-template <typename CountT = Int>
-class ContiguousRange
-{
-public:
-	CountT begin_raw;
-	CountT end_raw;
-
-	class Iterator
-	{
 	public:
-		CountT counter;
 
-		Iterator(const CountT _counter) : counter(_counter) {}
 
-		Iterator& operator++ () { ++counter; return *this; }
-		Iterator operator++(int) { Iterator ret = *this; ++(*this); return ret; }
-
-		Iterator& operator-- () { --counter; return *this; }
-		Iterator operator--(int) { Iterator ret = *this; --(*this); return ret; }
-
-		bool operator==(Iterator lhs) const { return counter == lhs.counter; }
-		bool operator!=(Iterator lhs) const { return !(*this == lhs); }
-
-		CountT operator*() { return counter; }
 	};
-
-	ContiguousRange(const CountT _begin_raw, const CountT _end_raw) : begin_raw(_begin_raw), end_raw(_end_raw) {}
-
-	Iterator begin() { return begin_raw; }
-	Iterator end() { return end_raw; /*return end_raw >= begin_raw ? end_raw + 1 : end_raw - 1;*/ }
-};
-
-using Range = ContiguousRange<>;
+}

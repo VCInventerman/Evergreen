@@ -26,6 +26,13 @@ namespace evg
 	class ImStringBase
 	{
 	public:
+		using This = StringViewBase<CharT>;
+		using Iterator = RandomContigIterator<CharT>;
+		using CIterator = RandomContigIterator<const CharT>;
+		using RevIterator = RevRandomContigIterator<CharT>;
+		using CRevIterator = RevRandomContigIterator<const CharT>;
+
+		constexpr static Size npos = std::numeric_limits<Size>::max();
 
 		// Values that are kept in map, point to a string
 		//todo: custom map implementation that lets Elem contain a hash using offset pointers
@@ -34,14 +41,22 @@ namespace evg
 		{
 		public:
 			std::atomic<Size> refs;
-			bool canBeRemoved;
+			bool owns; // Indicates whether the attached string will be deleted with this element
 
 			StringViewHash string;
 
-			Elem(const Hash _hash, CharT* const _data, const Size _size) : string(_data, _hash)
+			Elem(const StringViewHash _string, const bool copy = true) : owns(copy)
 			{
-				refs = 0;
-				canBeRemoved = false;
+				if (copy)
+				{
+					Char* mem = new Char[_string.size()];
+					std::copy(_string.cbegin(), _string.cend(), mem);
+					string = StringViewHash(mem, _string.size(), _string.hash());
+				}
+				else
+				{
+					string = StringViewHash(_string);
+				}
 			}
 
 			void addRef()
@@ -53,77 +68,83 @@ namespace evg
 				--refs;
 			}
 
-
+			~Elem()
+			{
+				if (owns)
+					delete string.data().begin_raw;
+			}
 		};
 
 		class Manager
 		{
 		public:
-			static Manager defaultManager;
-
 			std::map<Hash, Elem> strings;
 			std::shared_mutex m_strings;
 
 			Elem* nullString;
 
-			// Get hash and length of string from a null-terminated CString
-			// djb2 by Dan Bernstein: http://www.cse.yorku.ca/~oz/hash.html
-			static std::pair<Hash, Size> getHashLenCString(CharT* const str)
-			{
-				Hash hash = 5381;
-				Int c;
-
-				CharT* i = str;
-				while ((c = *i++))
-					hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-				return { hash, i - str };
-			}
-
 			Manager()
 			{
-				nullString = &strings.emplace(std::piecewise_construct, std::forward_as_tuple(getHashLenCString((CChar*)"").first), std::forward_as_tuple(getHashLenCString((CChar*)"").first, (CChar*)"", 1)).first->second;
+				nullString = &strings.emplace(std::piecewise_construct, std::forward_as_tuple(hashes::djb2<Hash>("")), std::forward_as_tuple(StringViewHash(""))).first->second;
 			}
 
-			// Requires a pointer that will not be freed during the lifetime of the element
-			Elem* emplace(CharT* const _str)
+			bool has(const Hash hash)
 			{
-				anyvar info = getHashLenCString(_str);
+				std::shared_lock<std::shared_mutex> lock(m_strings);
+				return strings.find(hash) != strings.end();
+			}
 
+			auto find (const Hash hash)
+			{
+				std::shared_lock<std::shared_mutex> lock(m_strings);
+				return strings.find(hash);
+			}
+
+			Elem* insert(const StringViewHash str, const bool copy = true)
+			{
 				m_strings.lock_shared();
-				auto&& exists = strings.find(info.first);
+				auto&& exists = find(str.hash());
 				m_strings.unlock_shared();
 
 				if (exists == strings.cend())
 				{
 					std::lock_guard<std::shared_mutex> lock(m_strings);
-					return &strings.emplace(std::piecewise_construct, std::forward_as_tuple(info.first), std::forward_as_tuple(info.first, _str, info.second)).first->second;
+					return &strings.emplace(std::piecewise_construct, std::forward_as_tuple(str.hash()), 
+						std::forward_as_tuple(str, copy)).first->second;
 				}
 				else
 				{
 					exists->second.addRef();
 					return &exists->second;
 				}
-			}
-
-			// Copies the supplied string
-			Elem* insert(CharT* const _str)
-			{
 
 			}
 		};
 
+		static Manager defaultManager;
+
 
 		Elem* source;
 
-		static constexpr auto npos = static_cast<Size>(-1);
-
 		ImStringBase() = default;
 		ImStringBase(Elem* const _source) : source(_source) {}
-		ImStringBase(CharT* const str)
+		ImStringBase(const StringViewHash str, bool copy = true)
 		{
-			source = Manager::defaultManager.emplace(str);
+			source = defaultManager.insert(str, copy);
 		}
+		ImStringBase(const CharT* const _begin, const CharT* const _end, bool copy = true)
+		{
+			source = defaultManager.insert(StringViewHash(_begin, _end), copy);
+		}
+		ImStringBase(CharT* const str, const Bool copy = true)
+		{
+			source = defaultManager.insert(str, copy);
+		}
+		ImStringBase(const std::string& str)
+		{
+			source = defaultManager.insert(str.data(), true);
+		}
+		
 
 
 
@@ -132,74 +153,61 @@ namespace evg
 			return source->string.data[index];
 		}
 
-		Size size()
+		Size size() const
 		{
-			return source->string.data.size();
+			return source->string.size();
 		}
 
-		CharT& front()
+		CharT& front() const
 		{
 			return source->string.data[0];
 		}
-		CharT& back()
+		CharT& back() const
 		{
-			return *source->string.end;
+			return *(source->string.end() - 1);
 		}
 
-		CharT* data()
-		{
-			return source->string.data;
-		}
-
-
-		CharT* begin()
-		{
-			return &*source->string.data.begin();
-		}
-		CharT* end()
-		{
-			return &*source->string.data.end();
-		}
+		ContiguousBufPtrEnd<CharT> data() const { return source->string.data(); }
+		Iterator begin() const { return data().begin(); }
+		Iterator end() const { return data().end(); }
+		CIterator cbegin() const { return data().cbegin(); }
+		CIterator cend() const { return data().cend(); }
+		RevIterator rbegin() const { return data().rbegin(); }
+		RevIterator rend() const { return data().rend(); }
+		CRevIterator crbegin() const { return data().crbegin(); }
+		CRevIterator crend() const { return data().crend(); }
 
 		//todo: template variant by reference or integer return value
-		CharT* find(CharT letter)
+		Size find(CharT letter) const
 		{
-			for (auto&& i : *this)
-			{
-				if (*i == letter)
-				{
-					return &*i;
-				}
-			}
-
-			return nullptr;
+			return source->string.find(letter);
 		}
 
-		CharT* rfind(CharT letter)
+		Size rfind(CharT letter) const
 		{
-			for (auto i = source->string.data.rbegin(); i != source->string.data.rend(); ++i)
-				//for (auto&& i : this->source->data.rbegin())
-			{
-				if (*i == letter)
-				{
-					return &*i;
-				}
-			}
+			return source->string.rfind(letter);
+		}
 
-			return nullptr;
+		ImStringBase operator+= (const ImStringBase& rhs)
+		{
+			Char* mem = new Char[this->size() + rhs.size()];
+			std::copy(this->cbegin(), this->cend(), mem);
+			std::copy(rhs.cbegin(), rhs.cend(), mem + this->size());
+
+			source = new Elem(StringViewHash(mem, this->size() + rhs.size()), false);
 		}
 
 		template<typename T>
 		T operator_conv() const
 		{
-			return source->string.data;
+			return source->string.data();
 		}
 
 		EVG_CXX_CAST(CharT*)
 
-		const bool operator< (const ImStringBase<CharT>& rhs) const { return source->string.hash < rhs.source->string.hash; }
+		const bool operator< (const ImStringBase<CharT>& rhs) const { return source->string.hash() < rhs.source->string.hash(); }
 	};
 
 	template <>
-	ImStringBase<>::Manager ImStringBase<>::Manager::defaultManager = {};
+	ImStringBase<>::Manager ImStringBase<>::defaultManager = {};
 }

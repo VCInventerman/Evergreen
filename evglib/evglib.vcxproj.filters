@@ -81,9 +81,6 @@
     <ClInclude Include="include\evergreen\containers\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\evergreen\string\BufString.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\evergreen\string\CString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -97,6 +94,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\evergreen\common\StringView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\yaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\string\StringView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\preprocessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\string\StringBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\containers\Tuple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\algorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

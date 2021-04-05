@@ -1,8 +1,7 @@
 #pragma once
 
-#include "evergreen/common/cppstd.h"
-
-#define category(name) namespace name {} using namespace name; namespace name
+//is a inline namespace 
+//#define category(name) namespace name {} using namespace name; namespace name 
 
 #define stack_only
 #define binary_rep(encoding) // Binary, hex, etc for debugger
@@ -30,6 +29,11 @@
 #define EVG_CXX_CAST_EXPLICIT_ADAPT_REDIRECT(type, adapter) explicit operator type () const { return (type)(operator_conv<adapter>()); }
 
 #define conv(var, type) var.operator type()
+#define inheritFR(member, func, ret) ret func() { return member.func() } // Inherit from function from a member that has a return value
+#define inheritFV(member, func) void func() { member.func() }
+
+
+
 
 
 #ifndef EVG_DISABLE_RETERROR
@@ -40,10 +44,13 @@
 #define EVG_RET_ERROR(val) throw 
 #endif
 
-category(evg)
+inline namespace evg
 {
 	// Class that cannot be used at compile time, indicates when a type is unavailable
 	class InvalidType;
+
+	// Class for use in conditional inheritance
+	class Empty {};
 
 	// Platform defined integer aliases
 	using UShort = unsigned short;
@@ -132,11 +139,29 @@ category(evg)
 
 	namespace least
 	{
+		using Int = Int;
+		using Float = Float;
+		using Double = Double;
 
+		using U8 = UInt;
+		using S8 = SInt;
+		using I8 = Int;
+
+		using U16 = UInt;
+		using S16 = SInt;
+		using I16 = Int;
+
+		using U32 = UInt;
+		using S32 = SInt;
+		using I32 = Int;
+
+		using U64 = ULong;
+		using S64 = SLong;
+		using I64 = Long;
 	}
 
 	// Characters
-	using UnicodeChar = fast::U32;
+	using UniChar = fast::U32;
 
 	using UChar = unsigned char;
 	using SChar = signed char;
@@ -144,9 +169,12 @@ category(evg)
 #define CChar const char
 
 	enum class Byte : Char {};
-	using Size = size_t;
+	using Size = uint_least64_t;
+	using Offset = int_least64_t;
 	using PtrNum = uintptr_t;
+	using PtrDiff = ptrdiff_t;
 	using binary_rep(hexadecimal) Hash = Size;
+	using Pid = U64;
 
 	using VoidFn = void(*)();
 	void nop() {} // Global "nop" function
@@ -156,11 +184,17 @@ category(evg)
 	template<typename T>
 	using Ptr = T*;
 
+
 	template<typename T>
 	using SPtr = std::shared_ptr<T>;
 
+#define makeSPtr std::make_shared
+
+
 	template<typename T>
 	using UPtr = std::unique_ptr<T>;
+
+#define makeUPtr std::make_unique
 
 	/*
 

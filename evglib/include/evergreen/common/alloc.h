@@ -4,23 +4,27 @@
 
 namespace evg
 {
-
+	// An error consists of an array of bytes that are different with every error and a pointer to a pair of two functions: a message and associated details
+	// The first function is general and cannot use the value of detailStore, while the second can get more specific
+	//todo: make allocation more efficient
 	class Error
 	{
 	public:
-		StringViewHash& msg;
-		SPtr<Byte[]> detailsStore;
+		using InterpretFuncs = Tuple<StringViewHash(*)(), String(*)(UPtr<Byte[]>& detailStore)>;
 
-		virtual StringViewHash& details() { return "No further details."; }
+		InterpretFuncs* funcs;
+		UPtr<Byte[]> detailStore;
 
-		Error() : msg("") {}
-		Error(Int simpleVal) : msg(simpleVal ? "Unspecified error" : "") {}
-		Error(const char* const _msg) : msg(_msg) {}
+		StringViewHash msg() { return funcs ? funcs->first() : "No message"; }
+		String details() { return funcs ? funcs->second(detailStore) : (String)"No further details"; }
+
+		Error() : funcs(), detailStore(nullptr) {} // Leave detailStore as a nullptr and use no message
+		Error(const Error& _err) : funcs(_err.funcs), detailStore(&_err.detailStore[0]) {}
 	};
 
 
 
-	// ErrorStack is a thread_local vector of Error. Each Error is either the base class or a derived class that can interpret the contents of the details stored on the heap.
+	// ErrorStack is a thread_local vector of Error that allows them to stack
 	class ErrorStack
 	{
 	public:
@@ -29,15 +33,16 @@ namespace evg
 
 	//thread_local ErrorStack
 
-	template <typename RetT, typename ErrorT = Error>
-	class RetPair
+	template <typename ValueT, typename ErrorT = Error>
+	class Ret
 	{
 	public:
-		RetT val;
+		ValueT val;
 		ErrorT err;
 
-		RetPair() = default;
-		RetPair(RetT&& _val) : val(_val), err() {}
+		Ret() = default;
+		Ret(ValueT _val) : val(_val), err() {}
+		Ret(ValueT _val, ErrorT _err) : val(_val), err(_err) {}
 	};
 
 	class Allocator
@@ -52,9 +57,9 @@ namespace evg
 	public:
 		static constexpr void* GenericMallocError = nullptr;
 
-		RetPair<void*> alloc(Size size)
+		Ret<void*> alloc(Size size)
 		{
-			RetPair<void*> ret(malloc(size));
+			Ret<void*> ret(malloc(size));
 
 			if (ret.val == GenericMallocError)
 			{

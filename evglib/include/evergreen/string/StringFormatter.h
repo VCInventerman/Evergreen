@@ -1,9 +1,176 @@
 #pragma once
 
-#include "evergreen/common/types.h"
+#include "evergreen/common/ContiguousBuf.h"
+#include "evergreen/containers/Vector.h"
 
-namespace bgl
+namespace evg
 {
+	namespace ast
+	{
+		class Expression;
+
+		class Scope
+		{
+		public:
+			Expression* parent = nullptr;
+			Vector<Expression*> members;
+
+			Scope(Expression* _parent = nullptr) : parent(_parent) {}
+
+			Expression* find(const String name);
+
+			void sort();
+
+			bool insert(Expression* const element)
+			{
+				if (contains(members, element))
+					return false;
+				else
+				{
+					members.push_back(element);
+					return true;
+				}
+			}
+
+		};
+
+		class Expression // Base class
+		{
+		public:
+			String name;
+			Scope scope;
+
+			virtual ~Expression() = default;
+
+			//llvm::Value* codegen() { return nullptr; } // = 0;
+		};
+
+		Expression* Scope::find(const String name)
+		{
+			Scope* current = this;
+			Vector<Expression*>::Iterator ret;
+
+			if ((parent == nullptr) && (members.size() == 0)) { return nullptr; }
+
+			do
+			{
+				ret = std::lower_bound(members.begin(), members.end(), name,
+				[](Expression* const lhs, const String& rhs) { return lhs->name < rhs; });
+
+				if (ret != members.end()) { return *ret; }
+
+				current = dynamic_cast<Scope*>((Expression*)current->parent);
+			} while (current != nullptr);
+
+			return nullptr;
+		}
+
+		void Scope::sort() 
+		{
+			std::sort(members.begin(), members.end(), [](Expression* lhs, Expression* rhs) { return lhs->name < lhs->name; });
+		}
+		
+
+		class Number : public Expression
+		{
+		public:
+
+		};
+
+		class Variable : public Expression
+		{
+		public:
+
+		};
+
+
+	}
+
+	template<typename T, typename BufT>
+	Size findPairEnd(const T left, const T right, BufT&& buf)
+	{
+		Size closePos = 0; // Target left side is always 0
+		Size counter = 1;
+
+		while (counter > 0) 
+		{
+			char c = buf[++closePos];
+			if (c == left) {
+				++counter;
+			}
+			else if (c == right) {
+				--counter;
+			}
+		}
+
+		return closePos;
+	}
+
+
+	// Interpret the contents of a string as if it was code.
+	// Keeps an internal state of relevant variables and allows Evergreen syntax, along with C style escape characters
+	// Example: (in a YAML config file)
+	// "{5 + baseLocation}, {pow(2, 4)}"  would map to: "55, 16"
+	class StringF
+	{
+	public:
+
+
+	public: // Access is discouraged
+		ast::Scope* root;
+		//std::map<String, String> variables;
+
+	public:
+		template<typename ... Ts>
+		StringBuilder f(Ts const& ... args)
+		{
+			StringBuilder ret;
+			ret.reserve((args.size()) ...);
+			((ret += args), ...);
+			format(ret);
+		}
+
+		// Only slices that are between pairs of { and } will be interpreted. Escape out brackets using \{ and \}
+		StringBuilder format(const StringView base)
+		{
+			Size left = base.find('{');
+			Size right = 0;
+
+			if (left == StringView::npos)
+				return base;
+
+			right = findPairEnd('{', '}', base.slice(left));
+
+			
+
+
+
+
+
+			return "";
+		}
+
+		ast::Scope parse(const StringView code)
+		{
+			ast::Scope ret;
+
+
+		}
+
+		StringBuilder eval(const ast::Scope& code)
+		{
+
+		}
+	};
+
+
+
+
+
+
+
+
+	/*
 	class StringFormatter
 	{
 	public:
@@ -77,5 +244,5 @@ namespace bgl
 		}
 	};
 
-	StringFormatter StringFormatter::standard;
+	StringFormatter StringFormatter::standard;*/
 }
