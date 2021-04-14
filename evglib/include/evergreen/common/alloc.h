@@ -10,10 +10,10 @@ namespace evg
 	class Error
 	{
 	public:
-		using InterpretFuncs = Tuple<StringViewHash(*)(), String(*)(UPtr<Byte[]>& detailStore)>;
+		using InterpretFuncs = Tuple<StringViewHash(*)(), String(*)(UniquePtr<Byte[]>& detailStore)>;
 
 		InterpretFuncs* funcs;
-		UPtr<Byte[]> detailStore;
+		UniquePtr<Byte[]> detailStore;
 
 		StringViewHash msg() { return funcs ? funcs->first() : "No message"; }
 		String details() { return funcs ? funcs->second(detailStore) : (String)"No further details"; }

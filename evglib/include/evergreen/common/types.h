@@ -72,47 +72,48 @@ inline namespace evg
 	using Float = float;
 	using Double = double;
 
-	using Bool = bool;
+	
 
 	// Fixed width integer aliases
-	using U8 = uint8_t;
-	using S8 = int8_t;
-	using I8 = int8_t;
+	using UInt8 = uint8_t;
+	using SInt8 = int8_t;
+	using Int8 = int8_t;
 
-	using U16 = uint16_t;
-	using S16 = int16_t;
-	using I16 = int16_t;
+	using UInt16 = uint16_t;
+	using SInt16 = int16_t;
+	using Int16 = int16_t;
 
-	using U32 = uint32_t;
-	using S32 = int32_t;
-	using I32 = int32_t;
+	using UInt32 = uint32_t;
+	using SInt32 = int32_t;
+	using Int32 = int32_t;
 
-	using U64 = uint64_t;
-	using S64 = int64_t;
-	using I64 = int64_t;
+	using UInt64 = uint64_t;
+	using SInt64 = int64_t;
+	using Int64 = int64_t;
 
-	using U128 = InvalidType;
-	using S128 = InvalidType;
-	using I128 = InvalidType;
+	using UInt128 = InvalidType;
+	using SInt128 = InvalidType;
+	using Int128 = InvalidType;
 
 	// Float aliases
-	using F16 = InvalidType;
-	using SF16 = InvalidType;
-	using UF16 = InvalidType;
+	using Float16 = InvalidType;
+	using SFloat16 = InvalidType;
+	using UFloat16 = InvalidType;
 
-	using F32 = Float;
-	using SF32 = Float;
-	using UF32 = InvalidType;
+	using Float32 = Float;
+	using SFloat32 = Float;
+	using UFloat32 = InvalidType;
 
-	using F64 = Double;
-	using SF64 = Double;
-	using UF64 = InvalidType;
+	using Float64 = Double;
+	using SFloat64 = Double;
+	using UFloat64 = InvalidType;
 
-	using F128 = InvalidType;
-	using SF128 = InvalidType;
-	using UF128 = InvalidType;
+	using Float128 = InvalidType;
+	using SFloat128 = InvalidType;
+	using UFloat128 = InvalidType;
 
 	// Bool aliases
+	using Bool = bool;
 	using Bool8 = Bool;
 	using Bool16 = InvalidType;
 	using Bool32 = InvalidType;
@@ -124,7 +125,7 @@ inline namespace evg
 		using Float = Float;
 		using Double = Double;
 
-		using U8 = UInt;
+		using UInt8 = UInt;
 		using S8 = SInt;
 		using I8 = Int;
 
@@ -143,7 +144,7 @@ inline namespace evg
 		using Float = Float;
 		using Double = Double;
 
-		using U8 = UInt;
+		using UInt8 = UInt;
 		using S8 = SInt;
 		using I8 = Int;
 
@@ -155,9 +156,9 @@ inline namespace evg
 		using S32 = SInt;
 		using I32 = Int;
 
-		using U64 = ULong;
+		using UInt64 = ULong;
 		using S64 = SLong;
-		using I64 = Long;
+		using Int64 = Long;
 	}
 
 	// Characters
@@ -174,27 +175,32 @@ inline namespace evg
 	using PtrNum = uintptr_t;
 	using PtrDiff = ptrdiff_t;
 	using binary_rep(hexadecimal) Hash = Size;
-	using Pid = U64;
+	using Pid = UInt64;
+
+
+	using RefCounterNumber = std::atomic<Int>;
+	using Mutex = std::mutex;
+	using SharedMutex = std::shared_mutex;
+
+	template <typename T>
+	using Lock = std::scoped_lock<T>;
+
+	template <typename T>
+	using SharedLock = std::shared_lock<T>;
+	
 
 	using VoidFn = void(*)();
 	void nop() {} // Global "nop" function
 
 	using EnumVal = int;
 	
-	template<typename T>
-	using Ptr = T*;
+	template <typename T>
+	using SharedPtr = std::shared_ptr<T>;
 
+	template <typename T>
+	using UniquePtr = std::unique_ptr<T>;
 
-	template<typename T>
-	using SPtr = std::shared_ptr<T>;
-
-#define makeSPtr std::make_shared
-
-
-	template<typename T>
-	using UPtr = std::unique_ptr<T>;
-
-#define makeUPtr std::make_unique
+	using Time = UInt64; // Nanoseconds
 
 	/*
 

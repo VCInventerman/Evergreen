@@ -662,7 +662,7 @@ public:
 
 */
 
-bool isPowerOfTen(U64 input) {
+bool isPowerOfTen(UInt64 input) {
 	return
 		input == 1ULL
 		|| input == 10ULL

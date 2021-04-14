@@ -49,8 +49,9 @@ namespace evg
 			{
 				if (copy)
 				{
-					Char* mem = new Char[_string.size()];
+					Char* mem = new Char[_string.size() + 1];
 					std::copy(_string.cbegin(), _string.cend(), mem);
+					mem[_string.size()] = '\0';
 					string = StringViewHash(mem, _string.size(), _string.hash());
 				}
 				else
@@ -79,10 +80,10 @@ namespace evg
 		{
 		public:
 			std::map<Hash, Elem> strings;
-			std::shared_mutex m_strings;
+			SharedMutex m_strings;
 
 			Elem* nullString;
-
+			
 			Manager()
 			{
 				nullString = &strings.emplace(std::piecewise_construct, std::forward_as_tuple(hashes::djb2<Hash>("")), std::forward_as_tuple(StringViewHash(""))).first->second;
@@ -90,13 +91,13 @@ namespace evg
 
 			bool has(const Hash hash)
 			{
-				std::shared_lock<std::shared_mutex> lock(m_strings);
+				SharedLock<SharedMutex> lock(m_strings);
 				return strings.find(hash) != strings.end();
 			}
 
 			auto find (const Hash hash)
 			{
-				std::shared_lock<std::shared_mutex> lock(m_strings);
+				SharedLock<SharedMutex> lock(m_strings);
 				return strings.find(hash);
 			}
 
@@ -193,6 +194,7 @@ namespace evg
 			Char* mem = new Char[this->size() + rhs.size()];
 			std::copy(this->cbegin(), this->cend(), mem);
 			std::copy(rhs.cbegin(), rhs.cend(), mem + this->size());
+			mem[this->size() + rhs.size() + 1] = '\0';
 
 			source = new Elem(StringViewHash(mem, this->size() + rhs.size()), false);
 		}

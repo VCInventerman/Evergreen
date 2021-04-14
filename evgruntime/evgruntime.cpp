@@ -111,12 +111,12 @@ public:
 	struct ELFHeader32
 	{
 		U32 magic; // e_ident[EI_MAG0] through e_ident[EI_MAG3]
-		U8 format; // e_ident[EI_CLASS]
-		U8 endian; // 	e_ident[EI_DATA]
-		U8 version1; // e_ident[EI_DATA]
-		U8 abi1; // e_ident[EI_DATA]
-		U8 abi2; // e_ident[EI_ABIVERSION]
-		U8 pad[7]; // e_ident[EI_PAD]
+		UInt8 format; // e_ident[EI_CLASS]
+		UInt8 endian; // 	e_ident[EI_DATA]
+		UInt8 version1; // e_ident[EI_DATA]
+		UInt8 abi1; // e_ident[EI_DATA]
+		UInt8 abi2; // e_ident[EI_ABIVERSION]
+		UInt8 pad[7]; // e_ident[EI_PAD]
 		U16 type; // e_type
 		U16 isa; // e_machine
 		U32 version2; // e_version
@@ -134,18 +134,18 @@ public:
 	struct ELFHeader64
 	{
 		U32 magic; // e_ident[EI_MAG0] through e_ident[EI_MAG3]
-		U8 format; // e_ident[EI_CLASS]
-		U8 endian; // 	e_ident[EI_DATA]
-		U8 version1; // e_ident[EI_DATA]
-		U8 abi1; // e_ident[EI_DATA]
-		U8 abi2; // e_ident[EI_ABIVERSION]
-		U8 pad[7]; // e_ident[EI_PAD]
+		UInt8 format; // e_ident[EI_CLASS]
+		UInt8 endian; // 	e_ident[EI_DATA]
+		UInt8 version1; // e_ident[EI_DATA]
+		UInt8 abi1; // e_ident[EI_DATA]
+		UInt8 abi2; // e_ident[EI_ABIVERSION]
+		UInt8 pad[7]; // e_ident[EI_PAD]
 		U16 type; // e_type
 		U16 isa; // e_machine
 		U32 version2; // e_version
-		U64 entry; // e_entry
-		U64 programHeader; // e_phoff
-		U64 sectionHeader; // e_shoff
+		UInt64 entry; // e_entry
+		UInt64 programHeader; // e_phoff
+		UInt64 sectionHeader; // e_shoff
 		U32 flags; // e_flags
 		U16 headerSize; // e_ehsize
 		U16 programHeaderEntrySize; // e_phentsize
@@ -172,14 +172,14 @@ public:
 	{
 		U32 name; // sh_name
 		U32 type; // sh_type
-		U64 flags; // sh_flags
-		U64 addr; // sh_addr
-		U64 offset; // sh_offset
-		U64 size; // sh_size
+		UInt64 flags; // sh_flags
+		UInt64 addr; // sh_addr
+		UInt64 offset; // sh_offset
+		UInt64 size; // sh_size
 		U32 link; // sh_link
 		U32 info; // sh_info
-		U64 align; // sh_addralign
-		U64 entrySize; // sh_entsize
+		UInt64 align; // sh_addralign
+		UInt64 entrySize; // sh_entsize
 	};
 
 	struct ElfSymbol32
@@ -187,18 +187,18 @@ public:
 		U32 name; // st_name
 		U32 value; // st_value
 		U32 size; // st_size
-		U8 info; // st_info
-		U8 other; // st_other
+		UInt8 info; // st_info
+		UInt8 other; // st_other
 		U16 sectionHeaderIndex; // st_shndx
 	};
 	struct ElfSymbol64
 	{
 		U32 name; // st_name
-		U8 info; // st_info
-		U8 other; // st_other
+		UInt8 info; // st_info
+		UInt8 other; // st_other
 		U16 sectionHeaderIndex; // st_shndx
-		U64 value; // st_value
-		U64 size; // st_size
+		UInt64 value; // st_value
+		UInt64 size; // st_size
 	};
 
 	struct ElfRel32
@@ -207,20 +207,20 @@ public:
 		U32 info; // r_info
 
 		U32 sym() { return info >> 8; }
-		U8 type() { return U8(info); }
+		UInt8 type() { return UInt8(info); }
 		U32 cinfo() { return (sym() << 8) + type(); }
 	};
 	struct ElfRel64
 	{
-		U64 offset; // r_offset
-		U64 info; // r_info
+		UInt64 offset; // r_offset
+		UInt64 info; // r_info
 
-		U64 sym() { return info >> 32; }
+		UInt64 sym() { return info >> 32; }
 		U32 type() { return U32(info); }
-		U32 cinfo() { return (U64(sym()) << 32) + type(); }
-		U64 typeData() { return (info << 32) >> 40; }
-		U64 typeId() { return (info << 56) >> 56; }
-		U64 typeInfo() { return (typeData() << 8) + type(); }
+		U32 cinfo() { return (UInt64(sym()) << 32) + type(); }
+		UInt64 typeData() { return (info << 32) >> 40; }
+		UInt64 typeId() { return (info << 56) >> 56; }
+		UInt64 typeInfo() { return (typeData() << 8) + type(); }
 	};
 
 	struct ElfRela32
@@ -230,21 +230,21 @@ public:
 		I32 addend; // r_addend
 
 		U32 sym() { return info >> 8; }
-		U8 type() { return U8(info & 0xff); }
+		UInt8 type() { return UInt8(info & 0xff); }
 		U32 cinfo() { return (sym() << 8) + type(); }
 	};
 	struct ElfRela64
 	{
-		U64 offset; // r_offset
-		U64 info; // r_info
-		I64 addend; // r_addend
+		UInt64 offset; // r_offset
+		UInt64 info; // r_info
+		Int64 addend; // r_addend
 
-		U64 sym() { return info >> 32; }
+		UInt64 sym() { return info >> 32; }
 		U32 type() { return U32(info & 0xffffffff); }
-		U32 cinfo() { return (U64(sym()) << 32) + type(); }
-		U64 typeData() { return (info << 32) >> 40; }
-		U64 typeId() { return (info << 56) >> 56; }
-		U64 typeInfo() { return (typeData() << 8) + type(); }
+		U32 cinfo() { return (UInt64(sym()) << 32) + type(); }
+		UInt64 typeData() { return (info << 32) >> 40; }
+		UInt64 typeId() { return (info << 56) >> 56; }
+		UInt64 typeInfo() { return (typeData() << 8) + type(); }
 	};
 
 
@@ -255,13 +255,13 @@ public:
 
 		char* name;
 		EnumVal type; // Similar to llvm::ELF::SHT_NULL
-		U64 flags;
-		U64 offset;
-		U64 size;
+		UInt64 flags;
+		UInt64 offset;
+		UInt64 size;
 		U32 link;
 		U32 info;
-		U64 align;
-		U64 entrySize;
+		UInt64 align;
+		UInt64 entrySize;
 
 		char* data;
 
@@ -354,7 +354,7 @@ public:
 
 		char* name;
 		char* value;
-		U64 size;
+		UInt64 size;
 		EnumVal info;
 		EnumVal visibility;
 		SectionHeader* def;
@@ -392,10 +392,10 @@ public:
 		char* begin;
 
 		char* location;
-		U64 info;
-		U64 addend;
+		UInt64 info;
+		UInt64 addend;
 
-		U64 symbolIndex;
+		UInt64 symbolIndex;
 		Symbol* symbol;
 
 		Relocation(char* const _begin, const UInt _bitwidth, char* const symbolTable, char* const section) : begin(_begin)
@@ -410,14 +410,14 @@ public:
 
 				symbolIndex = rela->sym();
 
-				U64 test = rela->typeId();
+				UInt64 test = rela->typeId();
 				llvm::ELF::R_X86_64_PLT32;
 				switch (rela->type())
 				{
 				case llvm::ELF::R_X86_64_GOTPC64: // 64 bit offset to GOT
 				{
-					U64 a1 = rela->addend;
-					U64 a2 = rela->offset;
+					UInt64 a1 = rela->addend;
+					UInt64 a2 = rela->offset;
 					nop();
 				}
 				case llvm::ELF::R_X86_64_GOTOFF64: // 64-bit PC relative offset to GOT
@@ -680,7 +680,7 @@ int main(int argc, char** argv)
 
 	//VirtualFree(buffer, 0, MEM_RELEASE);
 
-	U64* b = (U64*)buffer;
+	UInt64* b = (UInt64*)buffer;
 
 	std::cout << '\n' << toCall() << "\n";
 

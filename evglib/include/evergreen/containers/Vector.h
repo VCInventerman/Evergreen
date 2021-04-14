@@ -15,22 +15,18 @@ namespace evg
 	class Vector
 	{
 	public:
-		using This = typename Vector<T>;
-		using Iterator = typename RandomContigIterator<T>;
-		using CIterator = typename RandomContigIterator<const T>;
-		using RevIterator = typename RevRandomContigIterator<T>;
-		using CRevIterator = typename RevRandomContigIterator<const T>;
+		using This = Vector<T>;
 
-		using value_type = typename T;
-		using allocator_type = typename AllocatorT;
+		using value_type = T;
+		using allocator_type = AllocatorT;
 		using size_type = Size;
 		using difference_type = Offset;
-		using reference = typename T&;
-		using const_reference = typename const T&;
-		using iterator = typename Iterator;
-		using const_iterator = typename CIterator;
-		using reverse_iterator = typename RevIterator;
-		using const_reverse_iterator = typename CRevIterator;
+		using reference = T&;
+		using const_reference = const T&;
+		using iterator = RandomContigIterator<T>;
+		using const_iterator = RandomContigIterator<const T>;
+		using reverse_iterator = RevRandomContigIterator<T>;
+		using const_reverse_iterator = RevRandomContigIterator<const T>;
 
 	public: // Access is discouraged
 		ContiguousBufPtrEnd<T> data_raw;
@@ -75,7 +71,7 @@ namespace evg
 					//todo: out of memory error
 				}
 
-				for (Int i : Range(size()))
+				for (Size i : ContiguousRange<Size>(size()))
 				{
 					mem[i] = std::move((*this)[i]);
 				}
@@ -93,14 +89,14 @@ namespace evg
 		Size sizeReserved() const { return reserved_raw - data_raw.begin_raw; }
 
 		ContiguousBufPtrEnd<T>& data() { return data_raw; }
-		Iterator begin() { return data().begin(); }
-		Iterator end() { return data().end(); }
-		CIterator cbegin() const { return data_raw.cbegin(); }
-		CIterator cend() const { return data_raw.cend(); }
-		RevIterator rbegin() { return data().rbegin(); }
-		RevIterator rend() { return data().rend(); }
-		CRevIterator crbegin() const { return data_raw.crbegin(); }
-		CRevIterator crend() const { return data_raw.crend(); }
+		iterator begin() { return data().begin(); }
+		iterator end() { return data().end(); }
+		const_iterator cbegin() const { return data_raw.cbegin(); }
+		const_iterator cend() const { return data_raw.cend(); }
+		reverse_iterator rbegin() { return data().rbegin(); }
+		reverse_iterator rend() { return data().rend(); }
+		const_reverse_iterator crbegin() const { return data_raw.crbegin(); }
+		const_reverse_iterator crend() const { return data_raw.crend(); }
 
 		void push_back(const T& val)
 		{

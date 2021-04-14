@@ -34,8 +34,8 @@ namespace evg
 		bool operator==(This lhs) const { return ptr == lhs.ptr; }
 		bool operator!=(This lhs) const { return !(*this == lhs); }
 
-		I64 operator-(const This& rhs) const { return ptr - rhs.ptr; }
-		I64 operator+(const This& rhs) const { return ptr + rhs.ptr; }
+		Int64 operator-(const This& rhs) const { return ptr - rhs.ptr; }
+		Int64 operator+(const This& rhs) const { return ptr + rhs.ptr; }
 		This operator-(const Size rhs) const { return ptr - rhs; }
 		This operator+(const Size rhs) const { return ptr + rhs; }
 
@@ -76,8 +76,8 @@ namespace evg
 		bool operator==(This lhs) const { return ptr == lhs.ptr; }
 		bool operator!=(This lhs) const { return !(*this == lhs); }
 
-		I64 operator-(const This& rhs) const { return ptr + rhs.ptr; }
-		I64 operator+(const This& rhs) const { return ptr - rhs.ptr; }
+		Int64 operator-(const This& rhs) const { return ptr + rhs.ptr; }
+		Int64 operator+(const This& rhs) const { return ptr - rhs.ptr; }
 		This& operator-(const Size& rhs) const { ptr += rhs; return *this; }
 		This& operator+(const Size& rhs) const { ptr -= rhs; return *this; }
 

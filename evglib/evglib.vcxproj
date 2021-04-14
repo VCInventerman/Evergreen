@@ -159,6 +159,7 @@
     <ClInclude Include="include\evergreen\common\preprocessor.h" />
     <ClInclude Include="include\evergreen\common\ProgramEnv.h" />
     <ClInclude Include="include\evergreen\common\StringView.h" />
+    <ClInclude Include="include\evergreen\common\tree.h" />
     <ClInclude Include="include\evergreen\common\types.h" />
     <ClInclude Include="include\evergreen\common\yaml.h" />
     <ClInclude Include="include\evergreen\containers\DynEnum.h" />

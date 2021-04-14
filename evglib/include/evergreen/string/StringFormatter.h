@@ -48,7 +48,7 @@ namespace evg
 		Expression* Scope::find(const String name)
 		{
 			Scope* current = this;
-			Vector<Expression*>::Iterator ret;
+			Vector<Expression*>::iterator ret;
 
 			if ((parent == nullptr) && (members.size() == 0)) { return nullptr; }
 

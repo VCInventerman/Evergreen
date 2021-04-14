@@ -16,11 +16,12 @@ namespace evg
 		ExitFailure = -1
 	};
 
+
 	class ProgramEnv
 	{
 	public:
 		// Pointer or PID representing process for use with
-		U64 nativeHandle;
+		UInt64 nativeHandle;
 		Pid pid;
 
 		Vector<String> args;
@@ -31,9 +32,11 @@ namespace evg
 
 		std::vector<void(*)(void)> atExitList;
 
-#ifdef EVG_LOG
 		boost::log::sources::severity_logger<boost::log::trivial::severity_level> log;
-#endif
+		
+		
+
+
 
 		void setArgs(int argc, char** argv)
 		{
@@ -62,7 +65,7 @@ namespace evg
 #if defined(EVG_PLATFORM_WIN) && defined(EVG_COMPILE_AOT)
 		Error init()
 		{
-			nativeHandle = (U64)GetCurrentProcess(); // Always -1
+			nativeHandle = (UInt64)GetCurrentProcess(); // Always -1
 			pid = GetCurrentProcessId();
 
 			return {};
@@ -150,7 +153,24 @@ namespace evg
 	ProgramEnv thisProgram;
 
 
-	using LogSeverity = boost::log::trivial::severity_level;
+	enum LogSeverity
+	{
+		trace = 100, // Extremely detailed information over most small actions
+		debug = 200, // Detailed information
+		info = 300, // Useful information
+		warn = 400, // Something that may be wrong, but will preserve desired behavior
+		error = 500, // Something that is incorrect and may result in wrong behavior
+		fatal = 600, // Something that is incorrect and causes a fatal exit
+	};
+
+	// Call the global log
+	template<typename ... Ts>
+	void log(LogSeverity sev, Ts const& ... args)
+	{
+		StringBuilder buf;
+		((buf += args), ...);
+		BOOST_LOG_SEV(thisProgram.log, sev) << buf;
+	}
 
 	template<typename ... Ts>
 	void logTrace(Ts const& ... args) { log(boost::log::trivial::trace, args...); }
