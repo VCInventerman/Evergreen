@@ -28,6 +28,9 @@ namespace evg
 		using reverse_iterator = RevRandomContigIterator<T>;
 		using const_reverse_iterator = RevRandomContigIterator<const T>;
 
+		
+		constexpr static Size SMALLEST_RESERVE = 32;
+
 	public: // Access is discouraged
 		ContiguousBufPtrEnd<T> data_raw;
 		T* reserved_raw; // Pointer to end of reserved memory
@@ -40,7 +43,7 @@ namespace evg
 		{
 			if (_copy)
 			{
-				Char* mem = new Char[_data.size()];
+				T* mem = new T[_data.size()];
 				std::copy(_data.cbegin(), _data.cend(), mem);
 				data_raw = ContiguousBufPtrEnd(mem, _data.size());
 			}
@@ -49,26 +52,41 @@ namespace evg
 				data_raw = { const_cast<T*>(_data.begin_raw), _data.size() };
 			}
 		}
-		Vector(const Size _size) : data_raw(new Char[_size], _size) {}
+		Vector(const Size _size) : data_raw(new T[_size], _size) {}
+		Vector(const Size _size, const T& val) : data_raw(new T[_size], _size)
+		{
+			std::fill(begin(), end(), val);
+		}
 
 		~Vector()
 		{
 			if (data_raw.begin_raw != nullptr)
 			{
+				std::cout << "DELETE VECTOR\n";
 				delete[] data_raw.begin_raw;
 			}
 		}
 
+		// The maximum extra size allocated is 1024 bytes
 		void reserve(const Size _size)
 		{
 			if (_size > sizeReserved())
 			{
+				Size newSize = std::max(((_size < 32) * SMALLEST_RESERVE), _size * 4);
+
+				if (_size > 1024)
+				{
+					newSize = (_size - (_size % 1024)) + 1024;
+				}
+
+
 				// Create a new memory region and move all objects to it, then set it as the object's memory and delete old
-				T* mem = allocator.allocate(_size);
+				T* mem = allocator.allocate(newSize);
 
 				if (mem == nullptr)
 				{
 					//todo: out of memory error
+					std::cout << "OUT OF MEMORY ERROR";
 				}
 
 				for (Size i : ContiguousRange<Size>(size()))
@@ -78,8 +96,12 @@ namespace evg
 
 				T* beginOld = data().begin_raw;
 
-				data_raw = ContiguousBufPtrEnd<T>(mem, _size);
-				reserved_raw = mem + _size;
+				data_raw = ContiguousBufPtrEnd<T>(mem, data_raw.size());
+				reserved_raw = mem + newSize;
+
+				static Size count = 0;
+				++count;
+				std::cout << "RESIZE " << count << '\n';
 
 				allocator.deallocate(beginOld, 1);
 			}
@@ -100,7 +122,7 @@ namespace evg
 
 		void push_back(const T& val)
 		{
-			reserve(size() + 1);
+			reserve(size() + 1); //todo: increase size in larger increments
 
 			data()[size()] = val;
 
@@ -114,6 +136,19 @@ namespace evg
 			data()[size()] = std::move(val);
 
 			++(data().end_raw);
+		}
+
+		void resize(const Size _size, const T& val)
+		{
+			reserve(_size);
+			data_raw = ContiguousBufPtrEnd(data().begin_raw, _size);
+			std::fill(begin(), end(), val);
+		}
+
+		void clear()
+		{
+			std::destroy(begin(), end());
+			data_raw.end_raw = data_raw.begin_raw;
 		}
 
 		T& operator[](const Size i) { return data_raw[i]; }

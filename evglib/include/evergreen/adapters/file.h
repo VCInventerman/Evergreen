@@ -41,7 +41,7 @@ namespace evg
 		//todo: better syntax for std::copy, like [begin,end) but in this case [begin,end]
 		ImString parentPath()
 		{
-			var lastSlash = string_raw.rfind('/');
+			auto lastSlash = string_raw.rfind('/');
 			Size size = lastSlash + 1; // Capture last slash
 			ContiguousBufPtrEnd<Char> str(size);
 			std::copy(string_raw.begin() + lastSlash + 1, string_raw.end(), str.begin());
@@ -109,9 +109,9 @@ namespace evg
 
 		bool operator< (const Path& rhs) const { return string_raw < rhs.string_raw; }
 
-		Path& operator= (const evg::Path& rhs) { *this = Path(rhs); }
-		Path& operator= (const evg::StringBuilder& rhs) { *this = Path(rhs); }
-		Path& operator= (CChar* rhs) { *this = Path(rhs); }
+		Path& operator= (const evg::Path& rhs) { this->string_raw = rhs.string_raw; }
+		Path& operator= (const evg::StringBuilder& rhs) { this->string_raw = rhs; }
+		Path& operator= (CChar* rhs) { return *this = Path(rhs); }
 
 		ContiguousBufPtrEnd<CChar> data() const { return string_raw.data(); }
 		Iterator begin() const { return data().begin(); }
@@ -130,6 +130,8 @@ namespace evg
 		// constructor () -> ()
 		// constructor (Path _path) -> ()
 
+		virtual ~File() {};
+
 		virtual String getName() = 0;
 
 		virtual bool isLoaded() = 0;
@@ -140,14 +142,21 @@ namespace evg
 
 		virtual void seek(const size_t _cursor, const std::ios_base::seekdir dir) = 0;
 
-		virtual void read(char buf[], const size_t size) = 0;
+		virtual void readBuf(ContiguousBufPtrEnd<char> buf) = 0;
 		virtual char* readAll(size_t& _size) = 0;
 		virtual void write(const char buf[], const size_t size) = 0;
 
 		virtual Char* begin() = 0;
 		virtual Char* end() = 0;
 
-		virtual ~File() {};
+		template<typename InT = char, typename OutT = InT>
+		OutT read()
+		{
+			char buf[sizeof(InT)];
+			readBuf(buf);
+			InT* in = (InT*)buf;
+			return (OutT)(*in);
+		}
 	};
 
 
@@ -210,9 +219,9 @@ namespace evg
 			}
 		}
 
-		void read(char buf[], const size_t size)
+		void read(char _buf[], const size_t _size)
 		{
-			std::copy(data + cursor, data + cursor + size, buf);
+			std::copy(data + cursor, data + cursor + _size, _buf);
 		}
 		char* readAll(size_t& _size)
 		{
@@ -221,9 +230,9 @@ namespace evg
 			std::copy(data, data + size, buf);
 			return buf;
 		}
-		void write(const char buf[], const size_t size)
+		void write(const char buf[], const size_t _size)
 		{
-			std::copy(buf, buf + size, data + cursor);
+			std::copy(buf, buf + _size, data + cursor);
 		}
 
 		Char* begin()

@@ -5,6 +5,7 @@
 #ifndef EVG_PREPROCESSOR_OVERRIDE
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #define EVG_PLATFORM_WIN
+#define _WIN32_WINNT 0x0601
 
 
 #elif defined(_POSIX_VERSION)

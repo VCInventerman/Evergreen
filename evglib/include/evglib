@@ -4,20 +4,11 @@
 #define EVG_LIB_BOOST
 #define EVG_LIB_LOG
 //#define EVG_LIB_LLVM
+#define EVG_LIB_DISCORD
 
-#ifdef EVG_LIB_BOOST
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/sinks/debug_output_backend.hpp>
-
-#include <boost/asio.hpp>
-#endif
-
+#include "evergreen/common/preprocessor.h"
 #include "evergreen/common/cppstd.h"
+#include "evergreen/common/libraries.h"
 #include "evergreen/common/types.h" // No C++ libraries can be included after this point because a number of preprocessor macros in types.h will interfere
 
 #include "evergreen/containers/Tuple.h"

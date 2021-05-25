@@ -120,6 +120,12 @@
     <ClInclude Include="include\evergreen\common\tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\evergreen\common\SemVer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\Asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="evg\unit.evg" />

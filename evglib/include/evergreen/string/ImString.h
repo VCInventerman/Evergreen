@@ -22,15 +22,14 @@
 
 namespace evg
 {
-	template <typename CharT = CChar> //, typename AllocatorT = CLibAllocator>
-	class ImStringBase
+	class ImString
 	{
 	public:
-		using This = StringViewBase<CharT>;
-		using Iterator = RandomContigIterator<CharT>;
-		using CIterator = RandomContigIterator<const CharT>;
-		using RevIterator = RevRandomContigIterator<CharT>;
-		using CRevIterator = RevRandomContigIterator<const CharT>;
+		using This = StringViewBase<CChar>;
+		using Iterator = RandomContigIterator<CChar>;
+		using CIterator = RandomContigIterator<CChar>;
+		using RevIterator = RevRandomContigIterator<CChar>;
+		using CRevIterator = RevRandomContigIterator<CChar>;
 
 		constexpr static Size npos = std::numeric_limits<Size>::max();
 
@@ -120,6 +119,11 @@ namespace evg
 				}
 
 			}
+
+			Elem* insert(CChar* _begin, CChar* _end, const bool copy = true)
+			{
+				return insert(StringViewHash(_begin, _end), copy);
+			}
 		};
 
 		static Manager defaultManager;
@@ -127,21 +131,21 @@ namespace evg
 
 		Elem* source;
 
-		ImStringBase() = default;
-		ImStringBase(Elem* const _source) : source(_source) {}
-		ImStringBase(const StringViewHash str, bool copy = true)
+		ImString() = default;
+		ImString(Elem* const _source) : source(_source) {}
+		ImString(const StringViewHash str, bool copy = true)
 		{
 			source = defaultManager.insert(str, copy);
 		}
-		ImStringBase(const CharT* const _begin, const CharT* const _end, bool copy = true)
+		ImString(CChar* const _begin, CChar* const _end, bool copy = true)
 		{
 			source = defaultManager.insert(StringViewHash(_begin, _end), copy);
 		}
-		ImStringBase(CharT* const str, const Bool copy = true)
+		ImString(CChar* const str, const Bool copy = true)
 		{
 			source = defaultManager.insert(str, copy);
 		}
-		ImStringBase(const std::string& str)
+		ImString(const std::string& str)
 		{
 			source = defaultManager.insert(str.data(), true);
 		}
@@ -149,9 +153,10 @@ namespace evg
 
 
 
-		CharT& operator[] (Size index)
+
+		CChar& operator[] (Size index)
 		{
-			return source->string.data[index];
+			return data()[index];
 		}
 
 		Size size() const
@@ -159,16 +164,16 @@ namespace evg
 			return source->string.size();
 		}
 
-		CharT& front() const
+		CChar& front() const
 		{
-			return source->string.data[0];
+			return data()[0];
 		}
-		CharT& back() const
+		CChar& back() const
 		{
 			return *(source->string.end() - 1);
 		}
 
-		ContiguousBufPtrEnd<CharT> data() const { return source->string.data(); }
+		ContiguousBufPtrEnd<CChar> data() const { return source->string.data(); }
 		Iterator begin() const { return data().begin(); }
 		Iterator end() const { return data().end(); }
 		CIterator cbegin() const { return data().cbegin(); }
@@ -179,17 +184,17 @@ namespace evg
 		CRevIterator crend() const { return data().crend(); }
 
 		//todo: template variant by reference or integer return value
-		Size find(CharT letter) const
+		Size find(CChar letter) const
 		{
 			return source->string.find(letter);
 		}
 
-		Size rfind(CharT letter) const
+		Size rfind(CChar letter) const
 		{
 			return source->string.rfind(letter);
 		}
 
-		ImStringBase operator+= (const ImStringBase& rhs)
+		ImString operator+= (const ImString& rhs)
 		{
 			Char* mem = new Char[this->size() + rhs.size()];
 			std::copy(this->cbegin(), this->cend(), mem);
@@ -205,11 +210,10 @@ namespace evg
 			return source->string.data();
 		}
 
-		EVG_CXX_CAST(CharT*)
+		EVG_CXX_CAST(CChar*)
 
-		const bool operator< (const ImStringBase<CharT>& rhs) const { return source->string.hash() < rhs.source->string.hash(); }
+		const bool operator< (const ImString& rhs) const { return source->string.hash() < rhs.source->string.hash(); }
 	};
 
-	template <>
-	ImStringBase<>::Manager ImStringBase<>::defaultManager = {};
+	ImString::Manager ImString::defaultManager = {};
 }

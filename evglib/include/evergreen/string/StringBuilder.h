@@ -27,7 +27,8 @@ namespace evg
 		StringBuilderBase(const CharT* const _data) : data_raw(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)), true) {}
 		StringBuilderBase(const CharT* const _data, const Size _size) : data_raw(_data, _size) {}
 		StringBuilderBase(const CharT* const _begin, const CharT* _end) : data_raw(_begin, _end) {}
-		StringBuilderBase(const Size _size) : data_raw(size) {}
+		StringBuilderBase(const Size _size) : data_raw(_size) {}
+		StringBuilderBase(const Size _size, const CharT _val) : data_raw(_size, _val) {}
 
 
 		void reserve(const Size _size) { data_raw.reserve(_size); }
@@ -46,9 +47,34 @@ namespace evg
 
 		operator CChar* () const { return data(); }
 		operator String () { return String(data_raw.data_raw, data_raw.size()); }
+		Char& operator[] (Size i) { return *(data_raw.data_raw.begin_raw + i); }
+
+		void push_back(const CharT& val)
+		{
+			data_raw.push_back(val);
+		}
+
+		void push_back(CharT&& val)
+		{
+			data_raw.push_back(val);
+		}
+
+		void resize(const Size size, const CharT& val)
+		{
+			data_raw.resize(size, val);
+		}
+
+		void clear()
+		{
+			data_raw.clear();
+		}
 	};
+
 
 	using StringBuilder = StringBuilderBase<>;
 
-	
+	ImString ImString::operator=(StringBuilder&& str)
+	{
+		source = defaultManager.insert(str.data().begin(), str.data().end(), false);
+	}
 }

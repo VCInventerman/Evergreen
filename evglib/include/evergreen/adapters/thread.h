@@ -8,7 +8,7 @@
 // Thread pool
 //todo: create more threads for waiting-heavy tasks based on suppied magnitude of time, custom context
 
-namespace bgl
+namespace evg
 {
 
 	void runWorkerThread(boost::asio::io_context* io_context)
@@ -30,11 +30,16 @@ namespace bgl
 	class ThreadPool
 	{
 	public:
+
+		constexpr static Size DEFAULT_WORKING_THREAD_CAP = 4;
+		constexpr static Size DEFAULT_BLOCKING_THREAD_CAP = 16;
+
+
 		boost::asio::io_context context;
 		boost::asio::executor_work_guard<boost::asio::io_context::executor_type>* work_guard;
 
 		std::vector<std::thread> threads;
-		uint32_t cap = 0;
+		uint32_t cap = DEFAULT_WORKING_THREAD_CAP;
 		bool active = false;
 
 		void init(uint16_t _cap = 0)
@@ -47,6 +52,7 @@ namespace bgl
 			{
 				// Allocate more threads than cores to reduce the penalty of waiting on mutexes
 				//todo: find a better multipler
+				//todo: second pool for blocking tasks that have very little cpu load
 				cap = uint32_t((double)std::thread::hardware_concurrency() * 1.0) - 1;
 			}
 
@@ -68,9 +74,6 @@ namespace bgl
 #endif
 				
 			}
-
-			if (threads.size() > 0) { active = true; }
-			else { std::cerr << "Unable to create worker thread!\n"; }
 		}
 
 		void stop()
@@ -101,7 +104,12 @@ namespace bgl
 				}
 			}
 		}
+
+		operator boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0>>>()
+		{
+			return context.get_executor();
+		}
 	};
 
-	ThreadPool gThreads; //The thread pool is always global and acsessible to any function inside this process
+	ThreadPool threads; //The thread pool is always global and acsessible to any function inside this process
 }

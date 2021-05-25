@@ -151,13 +151,17 @@
     <ClInclude Include="include\evergreen\adapters\thread.h" />
     <ClInclude Include="include\evergreen\common\algorithm.h" />
     <ClInclude Include="include\evergreen\common\alloc.h" />
+    <ClInclude Include="include\evergreen\common\Asset.h" />
+    <ClInclude Include="include\evergreen\common\configuration.h" />
     <ClInclude Include="include\evergreen\common\ContiguousBuf.h" />
     <ClInclude Include="include\evergreen\common\cppstd.h" />
     <ClInclude Include="include\evergreen\common\errors.h" />
+    <ClInclude Include="include\evergreen\common\libraries.h" />
     <ClInclude Include="include\evergreen\common\Object.h" />
     <ClInclude Include="include\evergreen\common\pointer.h" />
     <ClInclude Include="include\evergreen\common\preprocessor.h" />
     <ClInclude Include="include\evergreen\common\ProgramEnv.h" />
+    <ClInclude Include="include\evergreen\common\SemVer.h" />
     <ClInclude Include="include\evergreen\common\StringView.h" />
     <ClInclude Include="include\evergreen\common\tree.h" />
     <ClInclude Include="include\evergreen\common\types.h" />

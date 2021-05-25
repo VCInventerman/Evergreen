@@ -9,8 +9,6 @@
 
 namespace evg
 {
-	using ImString = ImStringBase<>;
-
 	using String = ImString;
 }
 

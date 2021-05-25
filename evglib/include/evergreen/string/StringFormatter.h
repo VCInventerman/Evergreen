@@ -67,7 +67,7 @@ namespace evg
 
 		void Scope::sort() 
 		{
-			std::sort(members.begin(), members.end(), [](Expression* lhs, Expression* rhs) { return lhs->name < lhs->name; });
+			std::sort(members.begin(), members.end(), [](Expression* lhs, Expression* rhs) { return lhs->name < rhs->name; });
 		}
 		
 
@@ -154,12 +154,12 @@ namespace evg
 		{
 			ast::Scope ret;
 
-
+			code.begin();
 		}
 
 		StringBuilder eval(const ast::Scope& code)
 		{
-
+			code.members.cbegin();
 		}
 	};
 

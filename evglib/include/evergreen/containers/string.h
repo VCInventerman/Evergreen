@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace bgl
+namespace evg
 {
 	// View of constant string data terminated with a null character
 	class cstring_view

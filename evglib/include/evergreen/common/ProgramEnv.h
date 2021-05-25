@@ -42,10 +42,10 @@ namespace evg
 		{
 			executableName = (Path(argv[0])).filename();
 			root = argv[0];
-			/*if (argc > 1)
+			if (argc > 1)
 			{
-				args = Vector<String>((const char*)argv + 1, (const char*)argc);
-			}*/
+				//args = Vector<String>((const char*)argv + 1, (const char*)argv + argc);
+			}
 		}
 
 		void quit(const ExitCode code = ExitSuccess)

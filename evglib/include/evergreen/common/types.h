@@ -10,9 +10,9 @@
 #define view_const const // Cannot be modified by viewer
 //#define const // Will not change
 
-#define var auto
-#define anyvar auto&&
-#define typeof decltype
+//#define var auto
+//#define anyvar auto&&
+//#define typeof decltype
 
 // Cast operator
 #define EVG_CXX_CAST(type) operator type () const { return operator_conv<type>(); }
@@ -46,6 +46,8 @@
 
 inline namespace evg
 {
+	using namespace std::literals::chrono_literals;
+
 	// Class that cannot be used at compile time, indicates when a type is unavailable
 	class InvalidType;
 
@@ -162,7 +164,7 @@ inline namespace evg
 	}
 
 	// Characters
-	using UniChar = fast::U32;
+	using UniChar = fast::U32; // UTF-32 Code Point
 
 	using UChar = unsigned char;
 	using SChar = signed char;
