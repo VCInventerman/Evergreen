@@ -1,3 +1,6 @@
+# preprocesor output
+*.i
+
 # Prerequisites
 *.d
 
