@@ -110,7 +110,7 @@ namespace evg
 		bool operator< (const Path& rhs) const { return string_raw < rhs.string_raw; }
 
 		Path& operator= (const evg::Path& rhs) { this->string_raw = rhs.string_raw; }
-		Path& operator= (const evg::StringBuilder& rhs) { this->string_raw = rhs; }
+		Path& operator= (const evg::StringBuilder& rhs) { this->string_raw = std::move(rhs.data()); }
 		Path& operator= (CChar* rhs) { return *this = Path(rhs); }
 
 		ContiguousBufPtrEnd<CChar> data() const { return string_raw.data(); }

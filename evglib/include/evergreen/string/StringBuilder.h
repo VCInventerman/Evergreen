@@ -73,8 +73,4 @@ namespace evg
 
 	using StringBuilder = StringBuilderBase<>;
 
-	ImString ImString::operator=(StringBuilder&& str)
-	{
-		source = defaultManager.insert(str.data().begin(), str.data().end(), false);
-	}
 }

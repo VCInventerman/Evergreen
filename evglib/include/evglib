@@ -11,6 +11,7 @@
 #include "evergreen/common/libraries.h"
 #include "evergreen/common/types.h" // No C++ libraries can be included after this point because a number of preprocessor macros in types.h will interfere
 
+#include "evergreen/common/bit.h"
 #include "evergreen/containers/Tuple.h"
 #include "evergreen/common/algorithm.h"
 #include "evergreen/string/String.h"
