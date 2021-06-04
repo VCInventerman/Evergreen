@@ -152,6 +152,8 @@
     <ClInclude Include="include\evergreen\common\algorithm.h" />
     <ClInclude Include="include\evergreen\common\alloc.h" />
     <ClInclude Include="include\evergreen\common\Asset.h" />
+    <ClInclude Include="include\evergreen\common\bit.h" />
+    <ClInclude Include="include\evergreen\common\compression.h" />
     <ClInclude Include="include\evergreen\common\configuration.h" />
     <ClInclude Include="include\evergreen\common\ContiguousBuf.h" />
     <ClInclude Include="include\evergreen\common\cppstd.h" />

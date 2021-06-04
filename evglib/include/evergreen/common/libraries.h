@@ -1,6 +1,8 @@
 #pragma once
 
-
+#ifdef EVG_LIB_ZLIB
+#include <zlib.h>
+#endif
 
 #ifdef EVG_LIB_BOOST
 #include <boost/log/core.hpp>

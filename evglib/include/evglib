@@ -1,23 +1,24 @@
 #pragma once
 
 #define EVG_DISABLE_RETERROR
+#define EVG_LIB_ZLIB
 #define EVG_LIB_BOOST
 #define EVG_LIB_LOG
 //#define EVG_LIB_LLVM
-#define EVG_LIB_DISCORD
+//#define EVG_LIB_DISCORD
 
 #include "evergreen/common/preprocessor.h"
 #include "evergreen/common/cppstd.h"
 #include "evergreen/common/libraries.h"
 #include "evergreen/common/types.h" // No C++ libraries can be included after this point because a number of preprocessor macros in types.h will interfere
 
-#include "evergreen/common/bit.h"
 #include "evergreen/containers/Tuple.h"
 #include "evergreen/common/algorithm.h"
 #include "evergreen/string/String.h"
 #include "evergreen/adapters/file.h"
 #include "evergreen/common/ProgramEnv.h"
 #include "evergreen/containers/varint.h"
+#include "evergreen/common/bit.h"
 #include "evergreen/common/yaml.h"
 
 #ifdef EVG_LIB_BOOST

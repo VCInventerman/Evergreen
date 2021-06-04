@@ -126,6 +126,15 @@
     <ClInclude Include="include\evergreen\common\Asset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\evergreen\common\configuration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\libraries.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\common\bit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="evg\unit.evg" />
