@@ -10,8 +10,8 @@
 //#undef _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
 
 
-#include "evergreen/common/alloc.h"
-#include "evergreen/common/errors.h"
+#include "evergreen/alloc.h"
+#include "evergreen/errors.h"
 
 namespace evg
 {
@@ -20,7 +20,7 @@ namespace evg
 		YAML::Node node;
 		try
 		{
-			node = YAML::LoadFile(std::string(path.operator_conv<CChar*>()));
+			node = YAML::LoadFile(std::string(path));
 		}
 		catch (const YAML::Exception& e)
 		{

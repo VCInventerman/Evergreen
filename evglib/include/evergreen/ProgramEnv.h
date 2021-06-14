@@ -1,9 +1,9 @@
 #pragma once
 
-#include "evergreen/common/types.h"
-#include "evergreen/containers/Vector.h"
-#include "evergreen/string/String.h"
-#include "evergreen/common/alloc.h"
+#include "evergreen/types.h"
+#include "evergreen/Vector.h"
+#include "evergreen/String.h"
+#include "evergreen/alloc.h"
 
 namespace evg
 {
@@ -26,7 +26,9 @@ namespace evg
 
 		Vector<String> args;
 		String executableName;
-		Path root; // Where executable file is stored
+		String programName;
+		Path executablePath;
+		Path parentPath; // Where executable file is stored
 
 		std::chrono::steady_clock::time_point beginTime;
 
@@ -38,13 +40,15 @@ namespace evg
 
 
 
-		void setArgs(int argc, char** argv)
+		void setArgs(const int argc, const char* const argv[])
 		{
-			executableName = (Path(argv[0])).filename();
-			root = argv[0];
+			executablePath = argv[0];
+			executableName = executablePath.filename();
+			parentPath = executablePath.parent();
 			if (argc > 1)
 			{
-				//args = Vector<String>((const char*)argv + 1, (const char*)argv + argc);
+				ContiguousBufPtrEnd(argv + 1, argv + argc);
+				//args = Vector<String>(ContiguousBufPtrEnd<const char*>(argv + 1, argv + argc));
 			}
 		}
 
@@ -67,6 +71,7 @@ namespace evg
 		{
 			nativeHandle = (UInt64)GetCurrentProcess(); // Always -1
 			pid = GetCurrentProcessId();
+			CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
 			return {};
 		}
@@ -206,3 +211,15 @@ namespace evg
 }
 
 using evg::EvgMain;
+
+void evgInitConfig(evg::String programName);
+
+// Initialize environment
+// argc and argv are the standard parameters provided by the OS
+// programName is a user defined string used for choosing configuration branches
+void evgProgramBegin(const int argc, const char* const argv[], const char* const programName)
+{
+	evg::thisProgram.setArgs(argc, argv);
+	evg::threads.init();
+	evgInitConfig(programName);
+}

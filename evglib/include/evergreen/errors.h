@@ -1,6 +1,6 @@
 #pragma once
 
-#include <evergreen/common/alloc.h>
+#include <evergreen/alloc.h>
 
 namespace evg
 {
@@ -67,7 +67,7 @@ namespace evg
 			static String details(UniquePtr<Byte[]>& detailStore)
 			{
 				DetailMap* detailMap = (DetailMap*)&detailStore[0];
-				return "Mark: " + std::to_string(detailMap->mark.column) + std::to_string(detailMap->mark.line) + std::to_string(detailMap->mark.pos) + " Message: " + detailMap->message.operator_conv<CChar*>() + "B total";
+				return f("Mark: ", std::to_string(detailMap->mark.column), std::to_string(detailMap->mark.line), std::to_string(detailMap->mark.pos), " Message: ", detailMap->message, "B total");
 			}
 
 			static inline Error::InterpretFuncs funcs = { msg, details };

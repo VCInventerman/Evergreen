@@ -1,6 +1,6 @@
 #pragma once
 
-#include <evergreen/common/ContiguousBuf.h>
+#include <evergreen/ContiguousBuf.h>
 
 // Search through a container for an element and return true if it is found.
 // It is general because it does not optimize for sorting

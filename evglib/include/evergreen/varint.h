@@ -1,6 +1,6 @@
 #pragma once
 
-#include "evergreen/common/types.h"
+#include "evergreen/types.h"
 
 namespace evg
 {

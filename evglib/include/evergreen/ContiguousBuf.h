@@ -1,6 +1,4 @@
 #pragma once
-//#include "evergreen/common/alloc.h"
-
 
 namespace evg
 {
@@ -11,7 +9,7 @@ namespace evg
 	public:
 		using This = typename RandomContigIterator<T>;
 
-		using iterator_category = std::random_access_iterator_tag;
+		using iterator_category = std::contiguous_iterator_tag;
 		using value_type = typename T;
 		using difference_type = Offset;
 		using pointer = typename T*;
@@ -155,23 +153,29 @@ namespace evg
 	//todo: iterator classes
 	//todo: fake private that only works with scope and warnings
 	// Interface ContiguousBuf implements begin and end
-	template <typename T>
+	/*template <typename T>
 	class ContiguousBuf
 	{
 	public:
 		T* getBegin();
 		T* getEnd();
-	};
+	};*/
 
 	template <typename T>
 	class ContiguousBufPtrEnd
 	{
 	public:
-		using This = ContiguousBufPtrEnd<T>;
-		using Iterator = RandomContigIterator<T>;
-		using CIterator = RandomContigIterator<const T>;
-		using RevIterator = RevRandomContigIterator<T>;
-		using CRevIterator = RevRandomContigIterator<const T>;
+		using This = ContiguousBufPtrEnd;
+
+		using value_type = T;
+		using size_type = Size;
+		using difference_type = Offset;
+		using reference = T&;
+		using const_reference = const T&;
+		using iterator = RandomContigIterator<T>;
+		using const_iterator = RandomContigIterator<const T>;
+		using reverse_iterator = RevRandomContigIterator<T>;
+		using const_reverse_iterator = RevRandomContigIterator<const T>;
 
 	public: // Access is discouraged
 		T* begin_raw;
@@ -179,9 +183,13 @@ namespace evg
 
 	public:
 		ContiguousBufPtrEnd() : begin_raw(nullptr), end_raw(nullptr) {}
+		//ContiguousBufPtrEnd(const ContiguousBufPtrEnd& _data) : begin_raw(_data.begin_raw), end_raw(_data.end_raw) {}
+		//ContiguousBufPtrEnd(ContiguousBufPtrEnd&& _data) : begin_raw(_data.begin_raw), end_raw(_data.end_raw) {}
 		ContiguousBufPtrEnd(T* const _begin, T* const _end) : begin_raw(_begin), end_raw(_end) {}
 		ContiguousBufPtrEnd(T* const _begin, const Size _size) : begin_raw(_begin), end_raw(_begin + _size) {}
-		ContiguousBufPtrEnd(const Size _size) : begin_raw(new Char[_size]), end_raw(begin_raw + _size) {}
+		//ContiguousBufPtrEnd(const Size _size) : begin_raw(new T[_size]), end_raw(begin_raw + _size) {}
+		//ContiguousBufPtrEnd(const ContiguousBufPtrEnd<std::remove_const<T>> rhs) : begin_raw(rhs.begin_raw), end_raw(rhs.end_raw) {}
+
 
 		T& at(Size index)
 		{
@@ -198,28 +206,26 @@ namespace evg
 		}
 
 		T* data() { return begin_raw; }
-		Iterator begin() { return begin_raw; }
-		Iterator end() { return end_raw; }
-		CIterator cbegin() const { return begin_raw; }
-		CIterator cend() const { return end_raw; }
-		RevIterator rbegin() { return end_raw; }
-		RevIterator rend() { return begin_raw; }
-		CRevIterator crbegin() const { return end_raw; }
-		CRevIterator crend() const { return begin_raw; }
+		iterator begin() { return begin_raw; }
+		iterator end() { return end_raw; }
+		const_iterator cbegin() const { return begin_raw; }
+		const_iterator cend() const { return end_raw; }
+		reverse_iterator rbegin() { return end_raw; }
+		reverse_iterator rend() { return begin_raw; }
+		const_reverse_iterator crbegin() const { return end_raw; }
+		const_reverse_iterator crend() const { return begin_raw; }
 
 		bool valid() const
 		{
 			return (begin_raw != nullptr) && (end_raw != nullptr) && (begin_raw <= end_raw);
 		}
 
-		operator T* () { return begin_raw; }
+		operator T* () const { return begin_raw; }
+		operator ContiguousBufPtrEnd<const T>() const { return { begin_raw, end_raw }; }
 	};
 
-	template <typename T>
-	using Slice = ContiguousBufPtrEnd<T>;
 
-
-	template <typename T, typename SizeT = Size>
+	/*template <typename T, typename SizeT = Size>
 	class ContiguousBufPtrSize
 	{
 	public:
@@ -255,7 +261,7 @@ namespace evg
 	public:
 		SizeT size;
 		T data[];
-	};
+	};*/
 
 
 	/*

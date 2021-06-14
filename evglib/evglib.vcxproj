@@ -139,16 +139,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="cpp\common\alloc.h" />
-    <ClInclude Include="cpp\common\ContiguousBuf.h" />
-    <ClInclude Include="cpp\common\cppstd.h" />
-    <ClInclude Include="cpp\common\pointer.h" />
-    <ClInclude Include="cpp\common\ProgramEnv.h" />
-    <ClInclude Include="cpp\common\types.h" />
-    <ClInclude Include="cpp\containers\Vector.h" />
-    <ClInclude Include="cpp\evglib.h" />
     <ClInclude Include="include\evergreen\adapters\file.h" />
     <ClInclude Include="include\evergreen\adapters\thread.h" />
+    <ClInclude Include="include\evergreen\algorithm.h" />
+    <ClInclude Include="include\evergreen\alloc.h" />
+    <ClInclude Include="include\evergreen\Asset.h" />
+    <ClInclude Include="include\evergreen\async.h" />
+    <ClInclude Include="include\evergreen\bit.h" />
+    <ClInclude Include="include\evergreen\clipboard.h" />
     <ClInclude Include="include\evergreen\common\algorithm.h" />
     <ClInclude Include="include\evergreen\common\alloc.h" />
     <ClInclude Include="include\evergreen\common\Asset.h" />
@@ -168,21 +166,46 @@
     <ClInclude Include="include\evergreen\common\tree.h" />
     <ClInclude Include="include\evergreen\common\types.h" />
     <ClInclude Include="include\evergreen\common\yaml.h" />
+    <ClInclude Include="include\evergreen\compression.h" />
+    <ClInclude Include="include\evergreen\configuration.h" />
     <ClInclude Include="include\evergreen\containers\DynEnum.h" />
     <ClInclude Include="include\evergreen\containers\DynTuple.h" />
     <ClInclude Include="include\evergreen\containers\string.h" />
     <ClInclude Include="include\evergreen\containers\Tuple.h" />
     <ClInclude Include="include\evergreen\containers\varint.h" />
     <ClInclude Include="include\evergreen\containers\Vector.h" />
+    <ClInclude Include="include\evergreen\ContiguousBuf.h" />
+    <ClInclude Include="include\evergreen\cppstd.h" />
+    <ClInclude Include="include\evergreen\DynTuple.h" />
+    <ClInclude Include="include\evergreen\errors.h" />
+    <ClInclude Include="include\evergreen\file.h" />
+    <ClInclude Include="include\evergreen\ImString.h" />
+    <ClInclude Include="include\evergreen\libraries.h" />
+    <ClInclude Include="include\evergreen\pointer.h" />
+    <ClInclude Include="include\evergreen\preprocessor.h" />
+    <ClInclude Include="include\evergreen\ProgramEnv.h" />
+    <ClInclude Include="include\evergreen\SemVer.h" />
+    <ClInclude Include="include\evergreen\string.h" />
+    <ClInclude Include="include\evergreen\StringBuilder.h" />
+    <ClInclude Include="include\evergreen\StringFormatter.h" />
+    <ClInclude Include="include\evergreen\StringView.h" />
     <ClInclude Include="include\evergreen\string\StringBuilder.h" />
     <ClInclude Include="include\evergreen\string\CString.h" />
     <ClInclude Include="include\evergreen\string\ImString.h" />
     <ClInclude Include="include\evergreen\string\String.h" />
     <ClInclude Include="include\evergreen\string\StringFormatter.h" />
     <ClInclude Include="include\evergreen\string\StringView.h" />
+    <ClInclude Include="include\evergreen\thread.h" />
+    <ClInclude Include="include\evergreen\Tuple.h" />
+    <ClInclude Include="include\evergreen\types.h" />
+    <ClInclude Include="include\evergreen\varint.h" />
+    <ClInclude Include="include\evergreen\Vector.h" />
+    <ClInclude Include="include\evergreen\WideStringIntake.h" />
+    <ClInclude Include="include\evergreen\yaml.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="evg\unit.evg" />
+    <None Include="include\evglib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

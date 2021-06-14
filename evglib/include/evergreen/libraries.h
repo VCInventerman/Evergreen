@@ -5,6 +5,8 @@
 #endif
 
 #ifdef EVG_LIB_BOOST
+#include <boost/asio/dispatch.hpp>
+
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
@@ -13,7 +15,9 @@
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sinks/debug_output_backend.hpp>
 
-#include <boost/asio.hpp>
+
+
+//#include <boost/asio.hpp>
 #endif
 
 #ifdef EVG_PLATFORM_WIN
@@ -39,6 +43,17 @@
 #include <audiopolicy.h>
 #include <endpointvolume.h>
 #include <functiondiscoverykeys_devpkey.h>
+
+#include <io.h>
+#include <fcntl.h>
+
+#include <windowsx.h>
+#include <shlobj.h>
+#include <shobjidl_core.h>
+#include <shobjidl.h>
+#include <shellapi.h>
+#include <shlwapi.h>
+#include <propkey.h>
 
 #undef min
 #undef max
@@ -147,4 +162,9 @@
 
 #ifdef EVG_LIB_DISCORD
 #include <discord-game-sdk/discord_game_sdk.h>
+#endif
+
+#ifdef EVG_LIB_JSON_NLOHMANN
+#include <nlohmann/json.hpp>
+namespace evg { using ::nlohmann::json; };
 #endif

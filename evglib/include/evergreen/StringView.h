@@ -1,6 +1,8 @@
 #pragma once
+#pragma warning(push)
+#pragma warning(disable : 4706)
 
-#include "evergreen/common/ContiguousBuf.h"
+#include "evergreen/ContiguousBuf.h"
 
 namespace evg
 {
@@ -8,7 +10,7 @@ namespace evg
 	{
 		// Get hash and length of string from a null-terminated CString
 		// djb2 by Dan Bernstein: http://www.cse.yorku.ca/~oz/hash.html
-		template <typename RetT = std::pair<Hash, Size>, typename CharT = CChar>
+		template <typename RetT = std::pair<Hash, Size>, typename CharT = Char>
 		typename std::enable_if<std::is_same<RetT, std::pair<Hash, Size>>::value, std::pair<Hash, Size>>::type djb2(const CharT* const str)
 		{
 			Hash hash = 5381;
@@ -21,11 +23,11 @@ namespace evg
 			}
 				
 
-			return { hash, i - str };
+			return { hash, i - str - 1 };
 		}
 
 		// Avoid returning the size
-		template <typename RetT = std::pair<Hash, Size>, typename CharT = CChar>
+		template <typename RetT = std::pair<Hash, Size>, typename CharT = Char>
 		typename std::enable_if<std::is_same<RetT, Hash>::value, Hash>::type djb2(const CharT* const str)
 		{
 			Hash hash = 5381;
@@ -42,7 +44,7 @@ namespace evg
 
 		// Get hash and length of string from a ContiguousBufPtrEnd (safer)
 		// djb2 by Dan Bernstein: http://www.cse.yorku.ca/~oz/hash.html
-		template <typename RetT = std::pair<Hash, Size>, typename CharT = CChar>
+		template <typename RetT = std::pair<Hash, Size>, typename CharT = Char>
 		typename std::enable_if<std::is_same<RetT, std::pair<Hash, Size>>::value, std::pair<Hash, Size>>::type djb2(const ContiguousBufPtrEnd<CharT> str)
 		{
 			Hash hash = 5381;
@@ -54,7 +56,7 @@ namespace evg
 		}
 
 		// Avoid returning the size
-		template <typename RetT = std::pair<Hash, Size>, typename CharT = CChar>
+		template <typename RetT = std::pair<Hash, Size>, typename CharT = Char>
 		typename std::enable_if<std::is_same<RetT, Hash>::value, Hash>::type djb2(const ContiguousBufPtrEnd<CharT> str)
 		{
 			Hash hash = 5381;
@@ -64,6 +66,22 @@ namespace evg
 
 			return hash;
 		}
+	}
+
+	template <typename CharT = Char>
+	Size strlen(const CharT* const str, const Size maxLen = 0x00FFFFFFFFFFFFFF)
+	{
+		//todo: vectorization
+
+		const CharT* c = str;
+		const CharT* const max = str + maxLen;
+
+		while ((*c != '\0') && (c <= max))
+		{
+			++c;
+		}
+
+		return c - str;
 	}
 
 
@@ -82,26 +100,32 @@ namespace evg
 		constexpr static Size npos = std::numeric_limits<Size>::max();
 
 	public: // Access is discouraged
-		ContiguousBufPtrEnd<CharT> data_raw;
+		ContiguousBufPtrEnd<const CharT> data_raw;
 
 	public:
 		StringViewBase() : data_raw() {}
 		StringViewBase(const CharT* const _data) : data_raw(_data, strlen(_data)) {}
 		StringViewBase(const CharT* const _data, const Size _size) : data_raw(_data, _size) {}
 		StringViewBase(const CharT* const _begin, const CharT* _end) : data_raw(_begin, _end) {}
+		/*constexpr StringViewBase(std::initializer_list<const CharT*> _data)
+		{
+			data_raw.begin_raw = *_data.begin();
+			data_raw.end_raw = *_data.end();
+		}*/
 
 
-		Size size() const { return data().size(); }
+		Size size() const { return range().size(); }
 
-		ContiguousBufPtrEnd<CharT> data() const { return data_raw; }
-		Iterator begin() const { return data().begin(); }
-		Iterator end() const { return data().end(); }
-		CIterator cbegin() const { return data().cbegin(); }
-		CIterator cend() const { return data().cend(); }
-		RevIterator rbegin() const { return data().rbegin(); }
-		RevIterator rend() const { return data().rend(); }
-		CRevIterator crbegin() const { return data().crbegin(); }
-		CRevIterator crend() const { return data().crend(); }
+		ContiguousBufPtrEnd<const CharT> range() const { return data_raw; }
+		const CharT* data() const { return data_raw.begin_raw; }
+		CIterator begin() const { return range().begin(); }
+		CIterator end() const { return range().end(); }
+		CIterator cbegin() const { return range().cbegin(); }
+		CIterator cend() const { return range().cend(); }
+		CRevIterator rbegin() const { return range().rbegin(); }
+		CRevIterator rend() const { return range().rend(); }
+		CRevIterator crbegin() const { return range().crbegin(); }
+		CRevIterator crend() const { return range().crend(); }
 
 		bool ptrComp(const This& rhs) const // Shallow compare ContiguousBufPtrEnd
 		{
@@ -156,6 +180,17 @@ namespace evg
 		inline bool operator!=(const This& rhs) const { return !comp(rhs); }
 
 		CharT& operator[](const Size i) { return data_raw[i]; }
+
+		operator std::string_view()
+		{
+			return std::string_view(data_raw, size());
+		}
+
+		// Get representation that is compatible for comparisons with std::string
+		std::string_view view() const
+		{
+			return std::string_view(data_raw, size());
+		}
 	};
 
 	using StringView = StringViewBase<>;
@@ -176,43 +211,56 @@ namespace evg
 		constexpr static Size npos = std::numeric_limits<Size>::max();
 
 	public: // Access is discouraged
-		ContiguousBufPtrEnd<CharT> data_raw;
+		ContiguousBufPtrEnd<const CharT> data_raw;
 		Hash hash_raw;
 
 	public:
 		// Constructors
 		StringViewHashBase() : data_raw(), hash_raw() {}
+		StringViewHashBase(const StringViewHashBase& _str)
+		{
+			data_raw = _str.data_raw;
+			hash_raw = _str.hash_raw;
+		}
+		StringViewHashBase(StringViewHashBase&& _str)
+		{
+			data_raw = _str.data_raw;
+			hash_raw = _str.hash_raw;
+		}
 		StringViewHashBase(const CharT* const _data)
 		{ 
 			auto hashlen = hashes::djb2<std::pair<Hash, Size>>(_data);
-			data_raw = ContiguousBufPtrEnd<CharT>(_data, hashlen.second);
+			data_raw = ContiguousBufPtrEnd<const CharT>(_data, hashlen.second);
 			hash_raw = hashlen.first;
 		}
 		StringViewHashBase(const CharT* const _data, const Size _size)
 		{
-			data_raw = ContiguousBufPtrEnd<CharT>(_data, _size);
+			data_raw = ContiguousBufPtrEnd<const CharT>(_data, _size);
 			hash_raw = hashes::djb2<Hash>(_data);
 		}
 		StringViewHashBase(const CharT* const _begin, const CharT* _end)
 		{
-			data_raw = ContiguousBufPtrEnd<CharT>(_begin, _end);
+			data_raw = ContiguousBufPtrEnd<const CharT>(_begin, _end);
 			hash_raw = hashes::djb2<Hash>(_begin);	
 		}
 		StringViewHashBase(const CharT* const _data, const Size _size, const Hash _hash) : data_raw(_data, _size), hash_raw(_hash) {}
 		StringViewHashBase(const CharT* const _begin, const CharT* _end, const Hash _hash) : data_raw(_begin, _end), hash_raw(_hash) {}
+		StringViewHashBase& operator=(const StringViewHashBase& _str) = default;
+		StringViewHashBase& operator=(StringViewHashBase&& _str) = default;
 
 		// Member functions
-		Size size() const { return data().size(); }
+		Size size() const { return range().size(); }
 
-		ContiguousBufPtrEnd<CharT> data() const { return data_raw; }
-		Iterator begin() const { return data().begin(); }
-		Iterator end() const { return data().end(); }
-		CIterator cbegin() const { return data().cbegin(); }
-		CIterator cend() const { return data().cend(); }
-		RevIterator rbegin() const { return data().rbegin(); }
-		RevIterator rend() const { return data().rend(); }
-		CRevIterator crbegin() const { return data().crbegin(); }
-		CRevIterator crend() const { return data().crend(); }
+		ContiguousBufPtrEnd<const CharT> range() const { return data_raw; }
+		const CharT* data() const { return data_raw.begin_raw; }
+		CIterator begin() const { return range().begin(); }
+		CIterator end() const { return range().end(); }
+		CIterator cbegin() const { return range().cbegin(); }
+		CIterator cend() const { return range().cend(); }
+		CRevIterator rbegin() const { return range().rbegin(); }
+		CRevIterator rend() const { return range().rend(); }
+		CRevIterator crbegin() const { return range().crbegin(); }
+		CRevIterator crend() const { return range().crend(); }
 
 		bool ptrComp(const ContiguousBufPtrEnd<CharT>& rhs) const // Shallow compare ContiguousBufPtrEnd
 		{
@@ -258,6 +306,15 @@ namespace evg
 			return npos;
 		}
 
+		bool has(CharT letter) const
+		{
+			for (auto&& i : *this)
+			{
+				if (i == letter) { return true; }
+			}
+			return false;
+		}
+
 		StringViewHashBase slice(Size offset) const
 		{
 			return StringViewHashBase(&*begin() + offset, &*end());
@@ -273,3 +330,5 @@ namespace evg
 
 	using StringViewHash = StringViewHashBase<>;
 }
+
+#pragma warning(pop)

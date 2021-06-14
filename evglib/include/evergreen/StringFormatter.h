@@ -1,7 +1,7 @@
 #pragma once
 
-#include "evergreen/common/ContiguousBuf.h"
-#include "evergreen/containers/Vector.h"
+#include "evergreen/ContiguousBuf.h"
+#include "evergreen/Vector.h"
 
 namespace evg
 {
