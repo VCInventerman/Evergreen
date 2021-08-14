@@ -8,7 +8,7 @@
 namespace evg
 {
 
-	template <typename CharT = Char, typename AllocatorT = std::allocator<CharT>>
+	template <typename CharT = char, typename AllocatorT = std::allocator<CharT>>
 	class StringBuilderBase
 	{
 	public:
@@ -25,43 +25,43 @@ namespace evg
 		using reverse_iterator = RevRandomContigIterator<CharT>;
 		using const_reverse_iterator = RevRandomContigIterator<const CharT>;
 
-	public: // Access is discouraged
-		Vector<CharT> data_raw;
+	protected: // Access is discouraged
+		Vector<CharT> data_;
 
 	public:
-		StringBuilderBase() : data_raw() {}
-		StringBuilderBase(const StringView _string) : data_raw(_string.range(), true) {}
-		StringBuilderBase(const CharT* const _data) : data_raw(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)), true) {}
-		StringBuilderBase(const CharT* const _data, const Size _size) : data_raw(_data, _size) {}
-		StringBuilderBase(const CharT* const _begin, const CharT* _end) : data_raw(_begin, _end) {}
-		StringBuilderBase(const Size _size) : data_raw(_size) {}
-		StringBuilderBase(const Size _size, const CharT _val) : data_raw(_size, _val) {}
-		StringBuilderBase(const const_iterator _begin, const const_iterator _end) : data_raw(_begin, _end) {}
-		StringBuilderBase(const StringBuilderBase& _str) : data_raw(_str.data_raw) {}
-		StringBuilderBase(StringBuilderBase&& _str) : data_raw(std::move(_str.data_raw)) {}
+		StringBuilderBase() : data_() {}
+		StringBuilderBase(const StringView _string) : data_(_string.range(), true) {}
+		StringBuilderBase(const CharT* const _data) : data_(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)), true) {}
+		StringBuilderBase(const CharT* const _data, const Size _size) : data_(_data, _size) {}
+		StringBuilderBase(const CharT* const _begin, const CharT* _end) : data_(_begin, _end) {}
+		StringBuilderBase(const Size _size) : data_(_size) {}
+		StringBuilderBase(const Size _size, const CharT _val) : data_(_size, _val) {}
+		StringBuilderBase(const const_iterator _begin, const const_iterator _end) : data_(_begin, _end) {}
+		StringBuilderBase(const StringBuilderBase& _str) : data_(_str.data_) {}
+		StringBuilderBase(StringBuilderBase&& _str) : data_(std::move(_str.data_)) {}
 		StringBuilderBase& operator= (const StringBuilderBase& _str)
 		{
-			data_raw = _str.data_raw;
+			data_ = _str.data_;
 		}
 		StringBuilderBase& operator= (StringBuilderBase&& _str)
 		{
-			data_raw = std::move(_str.data_raw);
+			data_ = std::move(_str.data_);
 		}
 		This& operator= (const CharT* const _data)
 		{
-			data_raw.assign(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)));
-			//data_raw = std::move(Vector<CharT>(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)), true));
+			data_.assign(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)));
+			//data_ = std::move(Vector<CharT>(ContiguousBufPtrEnd<const CharT>(_data, strlen(_data)), true));
 			return *this;
 		}
 		
 
 
-		void reserve(const Size _size) { data_raw.reserve(_size); }
+		void reserve(const Size _size) { data_.reserve(_size); }
 
 		Size size() const { return range().size(); }
 
-		CharT* data() const { return data_raw.data_raw.begin_raw; }
-		ContiguousBufPtrEnd<CharT> range() const { return data_raw.data_raw; }
+		CharT* data() const { return data_.data(); }
+		ContiguousBufPtrEnd<CharT> range() const { return data_.range(); }
 		iterator begin() { return range().begin(); }
 		iterator end() { return range().end(); }
 		const_iterator cbegin() const { return range().cbegin(); }
@@ -72,8 +72,8 @@ namespace evg
 		const_reverse_iterator crend() const { return range().crend(); }
 
 		operator const CharT* () const { return data(); }
-		//operator String () { return String(data_raw.data_raw, data_raw.size()); }
-		Char& operator[] (Size i) { return *(data_raw.data_raw.begin_raw + i); }
+		//operator String () { return String(data_.data_, data_.size()); }
+		char& operator[] (Size i) { return *(data_.data_.begin_ + i); }
 
 		friend std::ostream& operator<< (std::ostream& stream, const StringBuilderBase& rhs)
 		{
@@ -83,27 +83,40 @@ namespace evg
 
 		void push_back(const CharT& val)
 		{
-			data_raw.push_back(val);
+			data_.push_back(val);
 		}
 
 		void push_back(CharT&& val)
 		{
-			data_raw.push_back(val);
+			data_.push_back(val);
 		}
 
-		void resize(const Size size, const CharT& val)
+		void resize(const Size size, const CharT val)
 		{
-			data_raw.resize(size, val);
+			data_.resize(size, val);
+		}
+
+		void resize(const Size size)
+		{
+			data_.resize(size, 0);
 		}
 
 		void clear()
 		{
-			data_raw.clear();
+			data_.clear();
 		}
 
 		void ensureNullTerminated()
 		{
-			*end() = '\0';
+			if (data_.sizeReserved() > data_.size())
+			{
+				*end() = '\0';
+			}
+			else
+			{
+				data_.reserve(data_.size() + 1);
+				*end() = '\0';
+			}
 		}
 
 		This& replaceAll(const CharT elm, const CharT sub)
@@ -113,29 +126,148 @@ namespace evg
 				if (c == elm)
 					c = sub;
 			}
-
+			
 			return *this;
 		}
 
-		This& operator+= (const ContiguousBufPtrEnd<const char> rhs)
+		template <typename T>
+		This& operator+= (const T& rhs)
 		{
-			data_raw.append(rhs.cbegin(), rhs.cend());
+			data_.append(rhs.cbegin(), rhs.cend());
+			return *this;
+		}
+
+		This& operator+= (const CharT* rhs)
+		{
+			data_.append(rhs, rhs + strlen(rhs));
+			return *this;
+		}
+
+
+
+		/*This& operator+= (const ContiguousBufPtrEnd<const char> rhs)
+		{
+			data_.append(rhs.cbegin(), rhs.cend());
 			return *this;
 		}
 		This& operator+= (const std::string& rhs)
 		{
-			data_raw.append(rhs.cbegin(), rhs.cend());
+			data_.append(rhs.cbegin(), rhs.cend());
 			return *this;
 		}
-		This& operator+= (const CharT* const rhs)
+		This& operator+= (const Path& rhs)
 		{
-			data_raw.append(rhs, rhs + strlen(rhs));
+			data_.append(rhs.cbegin(), rhs.cend());
 			return *this;
-		}
+		}*/
+		/*This& operator+= (const CharT* const rhs)
+		{
+			data_.append(rhs, rhs + strlen(rhs));
+			return *this;
+		}*/
 		This& operator+= (const CharT rhs)
 		{
 			push_back(rhs);
 			return *this;
+		}
+		This& operator+= (const unsigned char rhs)
+		{
+			push_back((CharT)rhs);
+			return *this;
+		}
+		This& operator+= (const signed char rhs)
+		{
+			push_back((CharT)rhs);
+			return *this;
+		}
+		This& operator+= (const UInt16 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%u", rhs);
+			resize(oldSize + written);
+			return *this; 
+		}
+		This& operator+= (const UInt32 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%hu", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const UInt64 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%llu", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const Int16 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%hd", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const Int32 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%d", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const Int64 rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%lld", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const Float rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%.6f", (double)rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+		This& operator+= (const Double rhs)
+		{
+			Size oldSize = size();
+			resize(size() + 10);
+			Size written = snprintf(data() + oldSize, 10, "%.6f", rhs);
+			resize(oldSize + written);
+			return *this;
+		}
+
+		void invalidate() noexcept
+		{
+			data_.invalidate();
+		}
+
+		Size find(const CharT val) const noexcept
+		{
+			return std::basic_string_view<CharT>(data(), size()).find(val);
+		}
+
+		Size rfind(const CharT val) const noexcept
+		{
+			return std::basic_string_view<CharT>(data(), size()).rfind(val);
+		}
+
+		Size count(const CharT val) const noexcept
+		{
+			return stringCount(data(), data() + size(), val);
+		}
+
+		std::function<void()> deleter()
+		{
+			return data_.deleter();
 		}
 	};
 

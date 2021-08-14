@@ -15,30 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cpp\common\pointer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\evglib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\common\ProgramEnv.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\common\types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\containers\Vector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\common\cppstd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\common\alloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\common\ContiguousBuf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\evergreen\string\StringFormatter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -141,9 +117,6 @@
     <ClInclude Include="include\evergreen\algorithm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\evergreen\alloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\evergreen\Asset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -162,12 +135,6 @@
     <ClInclude Include="include\evergreen\cppstd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\evergreen\DynTuple.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\evergreen\errors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\evergreen\file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -175,9 +142,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\evergreen\libraries.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\evergreen\pointer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\evergreen\preprocessor.h">
@@ -193,9 +157,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\evergreen\StringBuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\evergreen\StringFormatter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\evergreen\StringView.h">
@@ -216,7 +177,31 @@
     <ClInclude Include="include\evergreen\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\evergreen\yaml.h">
+    <ClInclude Include="include\evergreen\async.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\WideStringIntake.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\coroutine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\Uuid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\StringEvalEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\EvgError.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\evergreen\position.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

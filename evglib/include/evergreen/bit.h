@@ -124,7 +124,7 @@ namespace evg
 	}
 
 
-	Tuple<UniChar, UInt> utf16ToCodepoint(const wchar_t* const c, const UInt32 maxSize)
+	Tuple<UniChar, UInt> utf16ToCodepoint(const WChar* const c, const UInt32 maxSize)
 	{
 		Tuple<UniChar, UInt> ret = { 0x20, 1 };
 
@@ -134,9 +134,9 @@ namespace evg
 		}
 
 
-		int c1 = c[0];
+		UInt c1 = c[0];
 		if (c1 >= 0xd800 && c1 < 0xdc00) {
-			int c2 = c[1];
+			UInt c2 = c[1];
 			ret.first = ((c1 & 0x3ff) << 10) + (c2 & 0x3ff) + 0x10000;
 		}
 		ret.first = c1;
@@ -230,19 +230,19 @@ namespace evg
 
 			if ((utf8.second >= 1) && (cp.first != '\0'))
 			{
-				out.push_back(*((Char*)(&utf8.first) + 0));
+				out.push_back(*((char*)(&utf8.first) + 0));
 			}
 			if (utf8.second >= 2)
 			{
-				out.push_back(*((Char*)(&utf8.first) + 1));
+				out.push_back(*((char*)(&utf8.first) + 1));
 			}
 			if (utf8.second >= 3)
 			{
-				out.push_back(*((Char*)(&utf8.first) + 2));
+				out.push_back(*((char*)(&utf8.first) + 2));
 			}
 			if (utf8.second >= 4)
 			{
-				out.push_back(*((Char*)(&utf8.first) + 3));
+				out.push_back(*((char*)(&utf8.first) + 3));
 			}
 
 
@@ -271,11 +271,11 @@ namespace evg
 			}
 			/*if (utf16.second >= 3)
 			{
-				out.push_back(*((Char*)(&utf16.first) + 2));
+				out.push_back(*((char*)(&utf16.first) + 2));
 			}
 			if (utf16.second >= 4)
 			{
-				out.push_back(*((Char*)(&utf16.first) + 3));
+				out.push_back(*((char*)(&utf16.first) + 3));
 			}*/
 
 			i += cp.second;

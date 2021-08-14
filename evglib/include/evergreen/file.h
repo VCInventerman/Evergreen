@@ -21,89 +21,136 @@ namespace evg
 	public:
 		using This = Path;
 
-		using value_type = Char;
-		using allocator_type = std::allocator<Char>;
+		using value_type = char;
+		using allocator_type = std::allocator<char>;
 		using size_type = Size;
 		using difference_type = Offset;
-		using reference = Char&;
-		using const_reference = const Char&;
-		using iterator = RandomContigIterator<const Char>;
-		using const_iterator = RandomContigIterator<const Char>;
-		using reverse_iterator = RevRandomContigIterator<const Char>;
-		using const_reverse_iterator = RevRandomContigIterator<const Char>;
+		using reference = char&;
+		using const_reference = const char&;
+		using iterator = RandomContigIterator<const char>;
+		using const_iterator = RandomContigIterator<const char>;
+		using reverse_iterator = RevRandomContigIterator<const char>;
+		using const_reverse_iterator = RevRandomContigIterator<const char>;
 
 
-	public: // Access is discouraged
-		String string_raw;
+	protected:
+		String string_;
+		StringBuilderBase<WChar> win32Cache_;
 
 	public:
 		// Returns everything after the last /
 		ImString filename()
 		{
-			Size lastSlash = string_raw.rfind('/');
-			return StringBuilder(string_raw.begin() + lastSlash + 1, string_raw.end());
+			Size lastSlash = string_.rfind('/');
+
+			if (lastSlash == string_.npos)
+				return "";
+
+			return StringBuilder(string_.begin() + lastSlash + 1, string_.end());
 		}
 
 		// Returns everything up to, but not including, the last slash
 		//todo: better syntax for std::copy, like [begin,end) but in this case [begin,end]
 		ImString parent()
 		{
-			auto lastSlash = string_raw.rfind('/');
-			return StringBuilder(string_raw.begin(), string_raw.begin() + lastSlash);
+			auto lastSlash = string_.rfind('/');
+
+			if (lastSlash == string_.npos)
+				return "";
+
+			return StringBuilder(string_.begin(), string_.begin() + lastSlash);
 		}
 
 #if defined(EVG_PLATFORM_WIN) && defined(EVG_COMPILE_AOT)
-		Bool exists()
+		bool exists()
 		{
-			DWORD attributes = GetFileAttributesW(string_raw.source->getAlternate());
+			DWORD attributes = GetFileAttributesW(getWin32());
 			return attributes != INVALID_FILE_ATTRIBUTES;
 		}
 
-		Bool isFile()
+		bool isFile()
 		{
-			DWORD attributes = GetFileAttributesW(string_raw.source->getAlternate());
+			DWORD attributes = GetFileAttributesW(getWin32());
 			return (attributes != INVALID_FILE_ATTRIBUTES) && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
 		}
 
-		Bool isDirectory()
+		bool isDir()
 		{
-			DWORD attributes = GetFileAttributesW(string_raw.source->getAlternate());
+			DWORD attributes = GetFileAttributesW(getWin32());
 			return (attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY);
 		}
 #elif defined(EVG_COMPILE_AOT)
-		Bool exists()
+		bool exists()
 		{
+			struct stat st;
+			return bool(stat(string_.data(), &st));
+		}
 
+		bool isFile()
+		{
+			struct stat st;
+			bool exist = stat(string_.data(), &st);
+			return exist && ((st.st_mode & S_IFMT) == S_IFREG);
+		}
 
+		bool isDir()
+		{
+			struct stat st;
+			bool exist = stat(string_.data(), &st);
+			return exist && ((st.st_mode & S_IFMT) == S_IFDIR);
 		}
 #else
-		Bool exists();
+		bool exists();
 #endif
 
-		const WChar* wide()
+		UtcTime modifyTime()
 		{
-			return string_raw.source->getAlternate();
+#ifdef EVG_PLATFORM_WIN
+			return std::chrono::clock_cast<std::chrono::system_clock, std::chrono::file_clock, std::chrono::system_clock::duration>(
+				std::filesystem::last_write_time(std::filesystem::path(string_.data())));
+#else
+			//return std::filesystem::last_write_time(std::filesystem::path(string_.data()));
+			return{};
+#endif
 		}
 
-		template<typename T>
-		Path& next(const T&& add)
+		const WChar* getWin32()
 		{
-			if (back() == '/')
+			if (size() != win32Cache_.size())
 			{
-				*this += add;
-			}
-			else
-			{ //todo: unicode, safe
-				StringBuilder newString = StringBuilder(size() - 1 + add.size());
+				utf8ToUtf16(string_, win32Cache_);
+				win32Cache_.replaceAll('/', '\\');
 			}
 
-			return *this;
+			return win32Cache_.data();
 		}
 
-		Path() : string_raw() {}
-		Path(String _str) : string_raw(std::move(_str.replaceAll('\\', '/'))) {}
-		Path(const StringBuilder& _str) : string_raw(std::move(StringBuilder(_str.data()).replaceAll('\\', '/'))) {}
-		Path(const Char* const _str) : string_raw(std::move(StringBuilder(_str).replaceAll('\\', '/'))) {}
+		void resetWin32()
+		{
+			win32Cache_.clear();
+		}
+
+#if defined(EVG_PLATFORM_WIN)
+		explicit operator const WChar* () { return getWin32(); }
+
+		const WChar* native() { return getWin32(); }
+#else
+		explicit operator const char* () { return data(); }
+
+		const char* native() { return data(); }
+#endif
+
+
+		Path() : string_() {}
+		Path(const Path& rhs) : string_(rhs.string_) {}
+		Path(Path&& rhs) : string_(std::move(rhs.string_)) {}
+		Path(const String str) : string_(str) {}
+		Path(const StringBuilder& str) : string_(str) {}
+		Path(StringBuilder&& str) : string_(std::move(str)) {}
+		Path(const char* const str) : string_(str) {}
+
+		// Constructor accepting a wide string
+		// Since this is intended for use with Win32, it converts back slashes into forward slashes
 		Path(const WChar* const _str)
 		{
 			StringBuilder builder;
@@ -111,47 +158,64 @@ namespace evg
 			builder.replaceAll('\\', '/');
 
 			builder.ensureNullTerminated();
-			string_raw.source = string_raw.defaultManager.insert(builder.data(), builder.data() + builder.size(), false);
-			string_raw.source->addRef();
-
-			builder.data_raw.data_raw = {};
-			builder.data_raw.reserved_raw = nullptr;
+			string_ = std::move(builder);
 		}
-		Path(const Path& rhs) : string_raw(rhs.string_raw) {}
-		Path(const Path&& rhs) : string_raw(std::move(rhs.string_raw)) {}
+
+
+		Path& operator= (const Path& rhs) { this->string_ = rhs.string_; resetWin32(); return *this; }
+		Path& operator= (Path&& rhs) 
+		{ 
+			this->string_ = std::move(rhs.string_); 
+			resetWin32(); 
+			return *this; 
+		}
+		Path& operator= (const String rhs) { resetWin32(); return *this = std::move(Path(rhs)); }
+		Path& operator= (const evg::StringBuilder& rhs) { resetWin32(); return *this = std::move(Path(rhs)); }
+		Path& operator= (evg::StringBuilder&& rhs) 
+		{ 
+			resetWin32(); 
+			*this = std::move(Path(std::move(rhs))); 
+			return *this;
+		}
+		Path& operator= (const char* const rhs) { resetWin32(); return *this = std::move(Path(rhs)); }
+		Path& operator= (const WChar* const rhs) { resetWin32(); return *this = std::move(Path(rhs)); }
+
+
+		~Path()
+		{
+			//if (string_.valid())
+			//	logInfo("Destroying path ", *this);
+		}
+
+
 
 		Path operator+= (const Path& rhs)
 		{
-			string_raw += rhs.string_raw;
+			string_ += rhs.string_;
+			resetWin32();
 		}
 
 		/*template<typename T>
 		T operator_conv() const
 		{
-			return string_raw.operator_conv<T>();
+			return string_.operator_conv<T>();
 		}
 
 		EVG_CXX_CAST(CChar*)*/
 		//EVG_CXX_CAST_ADAPT(std::filesystem::path, CChar*)
-		operator ContiguousBufPtrEnd<const Char>() const { return range(); }
-		explicit operator std::string() const { return string_raw.data(); }
-		operator const WChar* () { return wide(); }
+		explicit operator ContiguousBufPtrEnd<const char>() const { return range(); }
+		explicit operator std::string() const { return string_.data(); }
 
 		friend std::ostream& operator<< (std::ostream& stream, const Path& rhs)
 		{
-			stream << rhs.string_raw;
+			stream << rhs.string_;
 			return stream;
 		}
 
-		bool operator< (const Path& rhs) const { return string_raw < rhs.string_raw; }
+		bool operator< (const Path& rhs) const { return string_ < rhs.string_; }
 
-		Path& operator= (const Path& rhs) { this->string_raw = rhs.string_raw; return *this; }
-		Path& operator= (Path&& rhs) { this->string_raw = rhs.string_raw; return *this; }
-		Path& operator= (const evg::StringBuilder& rhs) { this->string_raw = String(rhs.data(), false); return *this; } //todo: move syntax, not just no copy
-		Path& operator= (const Char* const rhs) { return *this = Path(rhs); }
-
-		ContiguousBufPtrEnd<CChar> range() const { return string_raw.source->string.range(); }
-		CChar* data() const { return string_raw.source->string.data(); }
+		ContiguousBufPtrEnd<CChar> range() const { return string_.range(); }
+		CChar* data() const { return string_.data(); }
 		const_iterator begin() const { return range().begin(); }
 		const_iterator end() const { return range().end(); }
 		const_iterator cbegin() const { return range().cbegin(); }
@@ -162,7 +226,7 @@ namespace evg
 		const_reverse_iterator crend() const { return range().crend(); }
 		CChar& back() const { return *(end() - 1); }
 
-		Size size() const { return string_raw.size(); }
+		Size size() const { return string_.size(); }
 	};
 
 #if defined(EVG_PLATFORM_WIN) && defined(EVG_COMPILE_AOT)
@@ -207,7 +271,7 @@ namespace evg
 
 	Path getPublicDataFolder()
 	{
-		KNOWNFOLDERID refId = { 0x559D40A3, 0xA036, 0x40FA, {0xAF,0x61, 0x84,0xCB,0x43,0x0A,0x4D,0x34} }; // FOLDERID_AppDataProgramData;
+		KNOWNFOLDERID refId = "{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}"_guid; // FOLDERID_ProgramData;
 		PWSTR path = nullptr;
 		HRESULT res1 = SHGetKnownFolderPath(refId, 0, NULL, &path);
 		if (SUCCEEDED(res1))
@@ -271,17 +335,19 @@ namespace evg
 #elif defined(EVG_COMPILE_AOT)
 	Path getAdminDataFolder()
 	{
-
+		return "/etc";
 	}
 
+	// Linux doesn't have one by default
 	Path getPublicDataFolder()
 	{
-
+		// return "/var";
+		return "";
 	}
 
 	Path getUserDataFolder()
 	{
-
+		return "";
 	}
 #else
 	Path getAdminDataFolder();
@@ -289,17 +355,33 @@ namespace evg
 	Path getUserDataFolder();
 #endif
 
+	Path getExecParentFolder();
 
-	Vector<char> simpleFileRead(Path path)
+
+	std::vector<char> simpleFileRead(Path path)
 	{
-		std::ifstream file(path, std::ifstream::binary | std::ifstream::ate);
-		Vector<char> vec(file.tellg());
-		file.seekg(0);
-		file.read(vec.data(), vec.size());
-		return vec;
+		try
+		{
+			std::ifstream file(path.native(), std::ifstream::binary | std::ifstream::ate);
+			auto n = file.tellg();
+			std::vector<char> vec(file.tellg());
+			file.seekg(0);
+			file.read(vec.data(), vec.size());
+			return vec;
+		}
+		catch (...)
+		{
+			logError("Simple file read failed at ", path);
+			return {};
+		}
 	}
 
+	/*inline Time getTime()
+	{
 
+
+		return Clock::now();
+	}*/
 
 
 	/*class File
@@ -333,8 +415,8 @@ namespace evg
 		//virtual char* readAll(size_t& _size) = 0;
 		//virtual void write(const char buf[], const size_t size) = 0;
 
-		/*virtual Char* begin() = 0;
-		virtual Char* end() = 0;
+		/*virtual char* begin() = 0;
+		virtual char* end() = 0;
 
 		template<typename InT = char, typename OutT = InT>
 		OutT read()
@@ -370,7 +452,7 @@ namespace evg
 
 		String getName()
 		{
-			return String((Char*)"MemFile");
+			return String((char*)"MemFile");
 		}
 
 		bool isLoaded() { return true; }
@@ -422,13 +504,13 @@ namespace evg
 			std::copy(buf, buf + _size, data + cursor);
 		}
 
-		Char* begin()
+		char* begin()
 		{
-			return (Char*)data;
+			return (char*)data;
 		}
-		Char* end()
+		char* end()
 		{
-			return (Char*)data + size;
+			return (char*)data + size;
 		}
 	};*/
 
@@ -439,6 +521,8 @@ namespace evg
 	class IterFile
 	{
 	public:
+
+#if defined(EVG_PLATFORM_WIN)
 		enum class Permission : Int
 		{
 			Read = (Int)GENERIC_READ,
@@ -449,6 +533,17 @@ namespace evg
 		};
 
 		typedef void (*CompletionHandler)(void*, LPOVERLAPPED, const std::error_code&, Size);
+#else
+		enum class Permission : Int
+		{
+			Read = (Int)O_RDONLY,
+			Write = (Int)O_WRONLY,
+			RW = O_RDWR,
+		};
+
+#endif
+
+
 
 		class Iterator
 		{
@@ -478,7 +573,7 @@ namespace evg
 		public:
 			using Op = std::function<void(std::coroutine_handle<>& handle)>;
 
-			
+
 			Op op;
 			Int res;
 
@@ -502,11 +597,11 @@ namespace evg
 
 		using This = IterFile;
 
-		using value_type = Char;
+		using value_type = char;
 		using size_type = Size;
 		using difference_type = Offset;
-		using reference = Char&;
-		using const_reference = const Char&;
+		using reference = char&;
+		using const_reference = const char&;
 		using iterator = Iterator;
 		using const_iterator = const Iterator;
 		using reverse_iterator = InvalidType;
@@ -515,6 +610,10 @@ namespace evg
 
 		constexpr static Size bufSize = 4096; // block size on my system
 
+
+
+
+#if defined(EVG_PLATFORM_WIN)
 		OVERLAPPED overlap; // The first 4 members of this struct are fixed in order for compatibility with win32 and asio
 		nullptr_t pad1 = nullptr;
 		CompletionHandler completionHandler = &This::onCompletion;
@@ -541,22 +640,22 @@ namespace evg
 
 			if (buf == nullptr)
 			{
-				DebugBreak();
+				debugBreak();
 			}
 
 
 			Int32 share = ((Int)perm & (Int)GENERIC_WRITE) ? 0 : (Int)FILE_SHARE_READ; // Allow other processes to read from this file if we don't write to it
 			Int32 openPolicy = ((Int)perm & (Int)GENERIC_WRITE) ? (Int)CREATE_NEW : (Int)OPEN_EXISTING; // Allow creation of new file if we are writing to it, otherwise do not
 
-			fileHandle = CreateFileW(path, (Int)perm, (Int)share, NULL, (Int)openPolicy,
+			fileHandle = CreateFileW(path.native(), (Int)perm, (Int)share, NULL, (Int)openPolicy,
 				FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED /*| FILE_FLAG_NO_BUFFERING*/, NULL);
 
-			HANDLE test = CreateIoCompletionPort(fileHandle, threads.native(), 0, 0); // Associate file with thread pool
-			
+			HANDLE completionHandle = CreateIoCompletionPort(fileHandle, threads.native(), 0, 0); // Associate file with thread pool
 
-			if (fileHandle == INVALID_HANDLE_VALUE)
+
+			if ((fileHandle == INVALID_HANDLE_VALUE) || (completionHandle == INVALID_HANDLE_VALUE))
 			{
-				DebugBreak();
+				debugBreak();
 
 				//todo: custom error type containing result from GetLastError()
 			}
@@ -569,6 +668,7 @@ namespace evg
 
 		~IterFile()
 		{
+			VirtualFree(buf, 0, MEM_RELEASE);
 			CloseHandle(fileHandle);
 		}
 
@@ -584,7 +684,7 @@ namespace evg
 					coHandle = _coHandle;
 					DWORD sizeRead = 0;
 					ReadFile(fileHandle, buf, bufSize, &sizeRead, &overlap);
-					InterlockedExchangeAcquire(&ready, 1);					
+					InterlockedExchangeAcquire(&ready, 1);
 				});
 
 			return op;
@@ -597,391 +697,82 @@ namespace evg
 			threads.post([file, e]()
 				{
 					file->op.res = e.value();
-					file->coHandle(); 
+					file->coHandle();
 				});
 		}
+#else
+		aiocb control;
+		long ready;
 
-		iterator begin()
+		AsyncFileOperation op;
+		char* buf;
+		Path path;
+		Permission perm;
+		int file;
+		Size fileSize;
+
+
+		std::coroutine_handle<> coHandle;
+
+
+		IterFile(const Path _path, const Permission _perm = Permission::Read) : path(std::move(_path)), perm(_perm)
 		{
+			buf = (char*)mmap(0, bufSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_UNINITIALIZED, -1, 0);
+
+			if (buf == nullptr)
+			{
+				debugBreak();
+			}
+
+			int flags = (Int)perm | O_LARGEFILE;
+			file = open(path.data(), flags);
+
+			struct stat st;
+			stat(path.data(), &st);
+			fileSize = st.st_size;
+		}
+
+		~IterFile()
+		{
+			munmap(buf, bufSize);
 
 		}
+
+
+
+
+		AsyncFileOperation loadBuf(const Size blockPos)
+		{
+			ready = 0;
+			memset(&control, 0, sizeof(control));
+			control.aio_fildes = file;
+			control.aio_offset = blockPos;
+			control.aio_buf = buf;
+			control.aio_nbytes = bufSize;
+			//control.aio_sigevent.sigev_notify = SIGEV_
+
+			aio_read(&control);
+
+			debugBreak();
+
+
+			return op;
+		}
+
+
+		/*static void onCompletion(void*, LPOVERLAPPED overlap, const std::error_code& e, Size size)
+		{
+			IterFile* file = (IterFile*)overlap;
+
+			threads.post([file, e]()
+				{
+					file->op.res = e.value();
+					file->coHandle();
+				});
+		}*/
+#endif // End linux implementation
+
+
 
 	};
 }
-
-
-
-
-/*
-namespace evg
-{
-	// Paths are internally stored as UTF-8 unix paths
-	class Path
-	{
-	public:
-		StringIm raw;
-
-		// Returns everything after the last /
-		StringIm filename()
-		{
-			return {raw.rfind('/'), raw.end() }
-		}
-
-		StringIm parentPath()
-		{
-
-		}
-
-		Path(const char* _raw) : raw(_raw) {}
-	};
-
-	class File
-	{
-	public:
-		virtual cStringC getName() = 0;
-
-		virtual bool isLoaded() = 0;
-		virtual bool load() = 0;
-		virtual void unload() = 0;
-
-		virtual size_t getSize() const = 0;
-
-		virtual void seek(const size_t _cursor, const std::ios_base::seekdir dir) = 0;
-
-		virtual void read(char buf[], const size_t size) = 0;
-		virtual char* readAll(size_t& _size) = 0;
-		virtual void write(const char buf[], const size_t size) = 0;
-
-		virtual ~File() = 0 {};
-	};
-
-	class MemFile : public File
-	{
-	public:
-		char* data = nullptr;
-		size_t size = 0;
-		size_t cursor = 0;
-
-		cstring_view getName()
-		{
-			return "MemFile";
-		}
-
-		bool isLoaded() { return true; }
-		bool load() { return true; }
-		void unload() {}
-
-		size_t getSize() const { return size; }
-
-		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
-		{
-			switch (dir)
-			{
-			case std::ios::beg:
-			{
-				cursor = _cursor;
-			}
-			case std::ios::cur:
-			{
-				cursor += _cursor;
-			}
-			case std::ios::end:
-			{
-				cursor = size - _cursor;
-			}
-			}
-		}
-
-		void read(char buf[], const size_t size)
-		{
-			std::copy(data + cursor, data + cursor + size, buf);
-		}
-		char* readAll(size_t& _size)
-		{
-			_size = size;
-			char* buf = new char[size];
-			std::copy(data, data + size, buf);
-			return buf;
-		}
-		void write(const char buf[], const size_t size)
-		{
-			std::copy(buf, buf + size, data + cursor);
-		}
-
-		~MemFile() {}
-	};
-
-	class DiskFile : public File
-	{
-	public:
-		std::ifstream file;
-		size_t size;
-		Path path;
-
-		static constexpr std::ios_base::openmode read_mode = std::ios_base::in | std::ios_base::binary | std::ios_base::ate;
-
-		DiskFile() = default;
-		DiskFile(const Path& _path) : path(_path) {}
-
-		cstring_view getName()
-		{
-			return path.generic_u8string().c_str();
-		}
-
-		bool isLoaded() { return file.is_open(); }
-
-		bool load()
-		{
-			if (isLoaded())
-				return true;
-
-			file.open(path, read_mode);
-
-			loadSize();
-
-			return isLoaded();
-		}
-
-		void unload()
-		{
-			file.close();
-		}
-
-		size_t getSize() const
-		{
-			return size;
-		}
-
-		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
-		{
-			file.seekg(_cursor, dir);
-		}
-
-
-		void read(char buf[], const size_t size)
-		{
-			file.read(buf, size);
-		}
-		char* readAll(size_t& _size)
-		{
-			_size = size;
-			char* buf = new char[size];
-			read(buf, size);
-			return buf;
-		}
-		void write(const char buf[], const size_t size) { throw std::exception("Attempting write to read-only view of disk file!"); }
-
-		void loadSize()
-		{
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-		}
-
-
-		static char* readFileToBuf(const Path _path, size_t& size)
-		{
-			std::ifstream file(_path, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-
-			char* buf = new char[size];
-
-			if (file.read(buf, size))
-			{
-				return buf;
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-
-		~DiskFile() {}
-	};
-
-	class DiskFileView : public File
-	{
-	public:
-		std::ifstream file;
-		size_t size;
-		Path path;
-
-		static constexpr std::ios_base::openmode read_mode = std::ios_base::in | std::ios_base::binary | std::ios_base::ate;
-
-		DiskFileView() = default;
-		DiskFileView(const Path& _path) : path(_path) {}
-
-		cstring_view getName()
-		{
-			return path.generic_u8string().c_str();
-		}
-
-		bool isLoaded() { return file.is_open(); }
-
-		bool load()
-		{
-			if (isLoaded())
-				return true;
-
-			file.open(path, read_mode);
-
-			loadSize();
-
-			return isLoaded();
-		}
-
-		void unload()
-		{
-			file.close();
-		}
-
-		size_t getSize() const
-		{
-			return size;
-		}
-
-		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
-		{
-			file.seekg(_cursor, dir);
-		}
-
-
-		void read(char buf[], const size_t size)
-		{
-			file.read(buf, size);
-		}
-		char* readAll(size_t& _size)
-		{
-			_size = size;
-			char* buf = new char[size];
-			read(buf, size);
-			return buf;
-		}
-		void write(const char buf[], const size_t size) { throw std::exception("Attempting write to read-only view of disk file!"); }
-
-		void loadSize()
-		{
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-		}
-
-
-		static char* readFileToBuf(const Path _path, size_t& size)
-		{
-			std::ifstream file(_path, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-
-			char* buf = new char[size];
-
-			if (file.read(buf, size))
-			{
-				return buf;
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-
-		~DiskFileView() {}
-	};
-
-	class DiskFileInMem : public File
-	{
-	public:
-		std::ifstream file;
-		size_t size;
-		Path path;
-		Byte* data;
-
-		static constexpr std::ios_base::openmode read_mode = std::ios_base::in | std::ios_base::binary | std::ios_base::ate;
-
-		DiskFileView() = default;
-		DiskFileView(const Path& _path) : path(_path) {}
-
-		cstring_view getName()
-		{
-			return path.generic_u8string().c_str();
-		}
-
-		bool isLoaded() { return file.is_open(); }
-
-		bool load()
-		{
-			if (isLoaded())
-				return true;
-
-			file.open(path, read_mode);
-
-			loadSize();
-
-			return isLoaded();
-		}
-
-		void unload()
-		{
-			file.close();
-		}
-
-		size_t getSize() const
-		{
-			return size;
-		}
-
-		void seek(const size_t _cursor, const std::ios_base::seekdir dir)
-		{
-			file.seekg(_cursor, dir);
-		}
-
-
-		void read(char buf[], const size_t size)
-		{
-			file.read(buf, size);
-		}
-		char* readAll(size_t& _size)
-		{
-			_size = size;
-			char* buf = new char[size];
-			read(buf, size);
-			return buf;
-		}
-		void write(const char buf[], const size_t size) { throw std::exception("Attempting write to read-only view of disk file!"); }
-
-		void loadSize()
-		{
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-		}
-
-
-		static char* readFileToBuf(const Path _path, size_t& size)
-		{
-			std::ifstream file(_path, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
-			size = file.tellg();
-			file.seekg(0, std::ios::beg);
-
-			char* buf = new char[size];
-
-			if (file.read(buf, size))
-			{
-				return buf;
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-
-
-
-		~DiskFileView() {}
-	};
-
-
-	class MemMapFile : public File
-	{
-
-	};
-}
-*/

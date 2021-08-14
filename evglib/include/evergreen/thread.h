@@ -1,15 +1,8 @@
 #pragma once
 
-
-
-#include "evergreen/types.h"
 #include <evergreen/ContiguousBuf.h>
 
-#define private public // look, i really needed access to the HANDLE in io_context
-#include <boost/asio/io_context.hpp>
-#undef private
 
-#include <boost/asio.hpp>
 
 
 // Thread pool
@@ -24,11 +17,13 @@ namespace evg
 		Heavy, // Continuous heavy work - shouldn't have more than the number of logical threads - ex. lightmap assembly, compilation
 	};
 
-	thread_local Atomic<ThreadStatus> threadStatus = ThreadStatus::Stopped;
+	thread_local std::atomic<ThreadStatus> threadStatus = ThreadStatus::Stopped;
 
 	void runWorkerThread(boost::asio::io_context* io_context)
 	{
+#if defined(EVG_PLATFORM_WIN)
 		CoInitializeEx(NULL, COINIT_MULTITHREADED);
+#endif
 
 		for (;;) // Infinite so the thread will resume after an exception
 		{
@@ -80,6 +75,7 @@ namespace evg
 		constexpr static Int DEFAULT_BLOCKING_THREAD_CAP = 16;
 
 
+	//protected:
 		boost::asio::io_context context;
 
 
@@ -92,14 +88,17 @@ namespace evg
 		std::vector<std::thread> working;
 		std::vector<std::thread> blocking;
 
-		
+		Int maxBlockingThreads;
 
-		Size maxBlockingThreads;
 
+	public:
 		ThreadPool() {} // Should only be used for static construction where initialization must be ordered
 		ThreadPool(const Int _workingThreads, const Int _maxBlockingThreads) { init(_workingThreads, _maxBlockingThreads); }
 
-		~ThreadPool() {}
+		~ThreadPool()
+		{
+			stop();
+		}
 
 		void init(const Int _workingThreads, const Int _maxBlockingThreads)
 		{
@@ -123,7 +122,7 @@ namespace evg
 				int policy;
 				pthread_getschedparam(blocking.back().native_handle(), &policy, &sch);
 				sch.sched_priority--;
-				pthread_setschedparam(blocking.back().native_handle(), policy, &sch)
+				pthread_setschedparam(blocking.back().native_handle(), policy, &sch);
 #endif
 			}
 
@@ -167,10 +166,31 @@ namespace evg
 			}
 		}
 
-		operator boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0>>>()
+
+		/*operator boost::asio::any_io_executor()
+		{
+			return context.get_executor();
+		}*/
+
+		operator boost::asio::io_context& ()
+		{
+			return context;
+		}
+
+		boost::asio::io_context& c() noexcept
+		{
+			return context;
+		}
+
+		boost::asio::any_io_executor ex() noexcept
 		{
 			return context.get_executor();
 		}
+
+		/*operator boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0>>, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0>>>()
+		{
+			return context.get_executor();
+		}*/
 
 		template<typename T>
 		auto post(T&& f, ThreadStatus hint = ThreadStatus::Light)
@@ -178,10 +198,12 @@ namespace evg
 			return boost::asio::post(context, f);
 		}
 
+#if defined(EVG_PLATFORM_WIN)
 		HANDLE native()
 		{
 			return context.impl_.iocp_.handle;
 		}
+#endif
 	};
 
 	ThreadPool threads; //The thread pool is always global and acsessible to any function inside this process

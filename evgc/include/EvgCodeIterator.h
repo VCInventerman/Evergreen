@@ -18,16 +18,16 @@ public:
 	using iterator_category = std::random_access_iterator_tag;
 	using value_type = UnicodeChar;
 	using difference_type = std::ptrdiff_t;
-	using pointer = Char*;
-	using reference = Char&;
+	using pointer = char*;
+	using reference = char&;
 
 
-	ContiguousBufPtrEnd<Char> code; // Begin and end of code file
-	Char* ptr; // Current point in code
+	ContiguousBufPtrEnd<char> code; // Begin and end of code file
+	char* ptr; // Current point in code
 
 
 	EvgCodeIterator() = default;
-	EvgCodeIterator(const ContiguousBufPtrEnd<Char> _code, Char* const _ptr) : code(_code), ptr(_ptr) {}
+	EvgCodeIterator(const ContiguousBufPtrEnd<char> _code, char* const _ptr) : code(_code), ptr(_ptr) {}
 
 	EvgCodeIterator& operator++ ()
 	{ 

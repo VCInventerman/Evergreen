@@ -37,9 +37,19 @@ namespace evg
 	template<typename ... Ts>
 	StringBuilder f(Ts const& ... args)
 	{
-		StringBuilder ret;
+		const Size count = sizeof...(args);
 
-		Size potentialSize = (([&]
+		if constexpr (count == 0)
+		{
+			return {};
+		}
+
+		thread_local StringBuilder retStore;
+		StringBuilder& ret = retStore;
+		ret.clear();
+
+		// This block is only used when f() does not keep a thread_local storage
+		/*Size potentialSize = (([&]
 			{
 				if constexpr (std::is_fundamental<Ts>::value)
 				{
@@ -57,7 +67,7 @@ namespace evg
 					}
 				}
 			}()) + ...);
-		ret.reserve(potentialSize);
+		ret.reserve(potentialSize);*/
 
 
 		((ret += args), ...);
@@ -65,7 +75,3 @@ namespace evg
 		return ret;
 	}
 }
-
-
-
-#include <evergreen/StringFormatter.h>

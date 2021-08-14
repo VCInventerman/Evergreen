@@ -31,65 +31,74 @@ namespace evg
 
 		constexpr static Size SMALLEST_RESERVE = 32;
 
-	public: // Access is discouraged
-		ContiguousBufPtrEnd<T> data_raw;
-		T* reserved_raw; // Pointer to end of reserved memory
+	protected: // Access is discouraged
+		ContiguousBufPtrEnd<T> data_;
+		T* reserved_; // Pointer to end of reserved memory
+
+		Size orgReserved = 0;
 
 		[[no_unique_address]] AllocatorT allocator;
 
 	public:
-		Vector() : data_raw(), reserved_raw() {}
+		Vector() : data_(), reserved_() {}
 		Vector(const ContiguousBufPtrEnd<const T> _data, const bool _copy = true)
 		{
 			if (_copy)
 			{
-				T* mem = new T[_data.size()];
+				T* mem = allocator.allocate(_data.size());
 				std::copy(_data.cbegin(), _data.cend(), mem);
-				data_raw = ContiguousBufPtrEnd(mem, _data.size());
-				reserved_raw = data_raw.end_raw;
+				data_ = ContiguousBufPtrEnd(mem, _data.size());
+				reserved_ = data_.end_;
 			}
 			else // Move ownership
 			{
-				data_raw = { const_cast<T*>(_data.begin_raw), _data.size() };
-				reserved_raw = data_raw.end_raw;
+				data_ = { const_cast<T*>(_data.begin_), _data.size() };
+				reserved_ = data_.end_;
 			}
 		}
-		Vector(const Size _size) : data_raw(allocator.allocate(_size), _size), reserved_raw(data_raw.end_raw) {}
-		Vector(const Size _size, const T& val) : data_raw(new T[_size], _size), reserved_raw(data_raw.end_raw)
+		Vector(const Size _size) : data_(allocator.allocate(_size), _size), reserved_(data_.end_) {}
+		Vector(const Size _size, const T& val) : data_(allocator.allocate(_size), _size), reserved_(data_.end_)
 		{
 			std::fill(begin(), end(), val);
 		}
-		Vector(const const_iterator _begin, const const_iterator _end) : reserved_raw()
+		Vector(const const_iterator _begin, const const_iterator _end) : reserved_()
 		{
 			append(_begin, _end);
 		}
-		constexpr Vector(std::initializer_list<T> _data) : data_raw(), reserved_raw()
+		constexpr Vector(std::initializer_list<T> _data) : data_(), reserved_()
 		{
 			reserve(_data.size());
-			std::vector<int> e;
+			
 			for (auto& i : _data)
 			{
 				push_back(std::move(i));
 			}
 		}
-		Vector(const Vector& rhs) { new (this) Vector(rhs.data_raw, true); } // Copy constructor
-		Vector(Vector&& rhs) { new (this) Vector(rhs.data_raw, false); rhs.data_raw = {}; rhs.reserved_raw = nullptr; } // Move constructor
+		Vector(const Vector& rhs) { new (this) Vector(rhs.data_, true); } // Copy constructor
+		Vector(Vector&& rhs) 
+		{ 
+			data_ = rhs.data_;
+			reserved_ = rhs.reserved_;
+
+			rhs.data_ = {}; 
+			rhs.reserved_ = nullptr; 
+		} // Move constructor
 		Vector& operator= (const Vector& rhs)  // Copy constructor
 		{
-			new (this) Vector(ContiguousBufPtrEnd<const T>(rhs.data_raw.begin_raw, rhs.data_raw.end_raw), true);
+			new (this) Vector(ContiguousBufPtrEnd<const T>(rhs.data_.begin_, rhs.data_.end_), true);
 			return *this;
 		}
 		Vector& operator= (Vector&& rhs)  // Move constructor
 		{ 
-			new (this) Vector(ContiguousBufPtrEnd<const T>(rhs.data_raw.begin_raw, rhs.data_raw.end_raw), false);
-			rhs.data_raw = {};
-			rhs.reserved_raw = nullptr;
+			new (this) Vector(ContiguousBufPtrEnd<const T>(rhs.data_.begin_, rhs.data_.end_), false);
+			rhs.data_ = {};
+			rhs.reserved_ = nullptr;
 			return *this; 
 		}
 		Vector& operator= (std::initializer_list<T> _data)
 		{
-			data_raw = {};
-			reserved_raw = nullptr;
+			data_ = {};
+			reserved_ = nullptr;
 
 			reserve(_data.size());
 
@@ -101,10 +110,13 @@ namespace evg
 
 		~Vector()
 		{
-			if (data_raw.begin_raw != nullptr)
+			if (data_.begin_ != nullptr)
 			{
 				//std::cout << "DELETE VECTOR " << size() << ' ' << sizeReserved() << " \n";
 				allocator.deallocate(data(), sizeReserved());
+				data_.begin_ = nullptr;
+				data_.end_ = nullptr;
+				reserved_ = nullptr;
 			}
 		}
 
@@ -112,9 +124,19 @@ namespace evg
 		// The maximum extra size allocated is 1024 bytes
 		void reserve(const Size _size)
 		{
+			if (_size > 1024000000000)
+			{
+				std::cout << "evg::Vector reserve() called with too large of memory allocation!\n";
+				throw std::bad_alloc();
+			}
+
 			if (_size + 2 > sizeReserved())
 			{
 				Size newSize = std::max(((_size < 32) * SMALLEST_RESERVE), _size * 4) + 1;
+				if (newSize <= sizeReserved())
+				{
+					debugBreak();
+				}
 
 				if (_size > 1024)
 				{
@@ -128,7 +150,7 @@ namespace evg
 				if (mem == nullptr)
 				{
 					//todo: out of memory error
-					std::cout << "OUT OF MEMORY ERROR";
+					std::cout << "OUT OF MEMORY ERROR\n";
 					throw std::bad_alloc();
 				}
 
@@ -137,24 +159,25 @@ namespace evg
 					mem[i] = std::move((*this)[i]);
 				}
 
-				ContiguousBufPtrEnd<T> oldMem = { data(), reserved_raw };
+				ContiguousBufPtrEnd<T> oldMem = { data(), reserved_ };
 
-				data_raw = ContiguousBufPtrEnd<T>(mem, data_raw.size());
-				reserved_raw = mem + newSize;
+				data_ = ContiguousBufPtrEnd<T>(mem, data_.size());
+				reserved_ = mem + newSize;
+				orgReserved = sizeReserved();
 
 				allocator.deallocate(oldMem.data(), oldMem.size());
+				
 			}
 		}
 
-		Size size() const { return data_raw.size(); }
-		Size sizeReserved() const { return reserved_raw - data_raw.begin_raw; }
+		Size size() const { return data_.size(); }
+		Size sizeReserved() const { return reserved_ - data_.begin_; }
 
-		T* data() noexcept { return data_raw; }
-		const T* data() const noexcept { return data_raw; }
+		T* data() const noexcept { return data_; }
 
 		// Get object that can be iterated over
-		ContiguousBufPtrEnd<T>& range() noexcept { return data_raw; }
-		const ContiguousBufPtrEnd<T>& range() const noexcept { return data_raw; }
+		ContiguousBufPtrEnd<T>& range() noexcept { return data_; }
+		const ContiguousBufPtrEnd<T>& range() const noexcept { return data_; }
 
 
 		iterator begin() { return range().begin(); }
@@ -174,7 +197,7 @@ namespace evg
 			iterator itr = end();
 			*itr = val;
 
-			++(range().end_raw);
+			++(range().end_);
 		}
 
 		void push_back(T&& val)
@@ -183,7 +206,7 @@ namespace evg
 
 			range()[size()] = std::move(val);
 
-			++(range().end_raw);
+			++(range().end_);
 		}
 
 		template< class... ArgsT >
@@ -193,7 +216,7 @@ namespace evg
 			resize(size() + 1);
 			Size s2 = size();
 			std::allocator_traits<AllocatorT>::construct(allocator, &*end() - 1, ::std:: forward<ArgsT>(args)...);
-			++(range().end_raw);
+			++(range().end_);
 		}
 
 
@@ -202,14 +225,14 @@ namespace evg
 		void resize(const Size _size)
 		{
 			reserve(_size);
-			data_raw = ContiguousBufPtrEnd<T>(data(), _size);
+			data_ = ContiguousBufPtrEnd<T>(data(), _size);
 		}
 
 		void resize(const Size _size, const T& val)
 		{
 			Size oldSize = size();
 			reserve(_size);
-			data_raw = ContiguousBufPtrEnd<T>(data(), _size);
+			data_ = ContiguousBufPtrEnd<T>(data(), _size);
 			if (oldSize < size())
 			{
 				std::fill(begin() + oldSize, end(), val);
@@ -219,23 +242,23 @@ namespace evg
 		void clear()
 		{
 			std::destroy(begin(), end());
-			data_raw.end_raw = data_raw.begin_raw;
+			data_.end_ = data_.begin_;
 		}
 
 		// Make vector invalid
-		// Different from the destructor, assumes object may be used or destroyed
+		// Different from the destructor, assumes pointers to data were kept
 		void invalidate()
 		{
-			data_raw = {};
-			reserved_raw = nullptr;
+			data_ = { nullptr, nullptr };
+			reserved_ = nullptr;
 		}
 
-		T& operator[](const Size i) { return data_raw[i]; }
+		T& operator[](const Size i) { return data_[i]; }
 
 		void assign(const ContiguousBufPtrEnd<const T> rhs)
 		{
 			resize(rhs.size());
-			std::copy(rhs.cbegin(), rhs.cend(), data_raw.begin());
+			std::copy(rhs.cbegin(), rhs.cend(), data_.begin());
 		}
 
 		void append(const T& elm)
@@ -251,7 +274,7 @@ namespace evg
 		void append(IterT _begin, IterT _end)
 		{
 			// Reserve space ahead of time if size of range can be determined trivially
-			if constexpr (std::is_base_of<std::random_access_iterator_tag, std::iterator_traits<IterT>::iterator_category>::value)
+			if constexpr (std::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<IterT>::iterator_category>::value)
 			{
 				reserve(size() + std::distance(_begin, _end));
 			}
@@ -260,6 +283,13 @@ namespace evg
 			{
 				push_back(*i);
 			}
+		}
+
+		std::function<void()> deleter()
+		{		
+			T* allocData = data();
+			Size allocSize = sizeReserved();
+			return [allocData, allocSize]() {std::allocator<T> fakeAllocator; fakeAllocator.deallocate(allocData, allocSize); };
 		}
 	};
 

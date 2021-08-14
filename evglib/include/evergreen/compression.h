@@ -18,7 +18,7 @@ public:
 
 	virtual bool fail() = 0;
 
-	virtual Compressor& operator<<(Char lhs) = 0;
+	virtual Compressor& operator<<(char lhs) = 0;
 
 
 
@@ -59,7 +59,7 @@ public:
 
 	virtual bool fail() = 0;
 
-	virtual Compressor& operator<<(Char lhs) = 0;
+	virtual Compressor& operator<<(char lhs) = 0;
 	{
 
 

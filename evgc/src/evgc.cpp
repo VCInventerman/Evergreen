@@ -622,8 +622,8 @@ public:
 	{
 		var&& firstFile = files.insert({ startFile.filename(), CodeFile(startFile) });
 
-		EvgCodeIterator itr = (Char*)firstFile.first->second.file.file->data;
-		EvgCodeIterator end = (Char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size + 1;
+		EvgCodeIterator itr = (char*)firstFile.first->second.file.file->data;
+		EvgCodeIterator end = (char*)firstFile.first->second.file.file->data + firstFile.first->second.file.file->size + 1;
 		itr.ptr += 3; // Skip magic file encoding header
 
 		getNext();
@@ -723,7 +723,7 @@ ExitCode EvgMain()
 {
 	//EvgCompiler compiler;
 
-	//compiler.compileAndRun((Char*)"../tests/test.evg");
+	//compiler.compileAndRun((char*)"../tests/test.evg");
 
 	llvm::LLVMContext context;
 	llvm::IRBuilder<> builder(context);

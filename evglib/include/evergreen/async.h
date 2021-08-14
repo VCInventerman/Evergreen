@@ -98,17 +98,27 @@ namespace evg
 	struct AsyncSleeper : std::suspend_always
 	{
 	public:
+		using This = AsyncSleeper;
+
 		boost::asio::high_resolution_timer timer;
 
-		AsyncSleeper(std::chrono::milliseconds _time) : timer(threads, _time) {}
+		AsyncSleeper(const std::chrono::milliseconds _time) : timer(threads.c(), boost::asio::chrono::milliseconds(_time)) {}
 
 		void await_suspend(std::coroutine_handle<> handle)
 		{
-			timer.async_wait([handle](const std::error_code e)
-				{
-					if (e) { throw std::runtime_error(e.message()); }
-					handle();
-				});
+			//std::coroutine_handle<> mover = std::move(handle);
+
+			timer.async_wait(std::bind(&This::waitComplete, std::move(handle), std::placeholders::_1));
+		}
+
+		static void waitComplete(std::coroutine_handle<> handle, const std::error_code error)
+		{
+			if (error)
+			{
+				throw std::runtime_error(error.message());
+			}
+
+			handle.resume();
 		}
 	};
 

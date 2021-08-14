@@ -1,48 +1,10 @@
 #pragma once
 
-//is a inline namespace 
-//#define category(name) namespace name {} using namespace name; namespace name 
-
-#define stack_only
-#define binary_rep(encoding) // Binary, hex, etc for debugger
-
-#define compile_const constexpr
-#define view_const const // Cannot be modified by viewer
-//#define const // Will not change
-
-//#define var auto
-//#define anyvar auto&&
-//#define typeof decltype
-
-// Cast operator
-#define EVG_CXX_CAST(type) operator type () const { return operator_conv<type>(); }
-#define EVG_CXX_CAST_ADAPT(type, adapter) operator type () const { return (type)(operator_conv<adapter>()); }
-
-#define EVG_CXX_CAST_EXPLICIT(type) explicit operator type () const { return operator_conv<type>(); }
-#define EVG_CXX_CAST_EXPLICIT_ADAPT(type, adapter) explicit operator type () const { return (type)(operator_conv<adapter>()); }
 
 
-#define EVG_CXX_CAST_REDIRECT(type) operator type () const { return operator_conv<type>(); }
-#define EVG_CXX_CAST_ADAPT_REDIRECT(type, adapter) operator type () const { return (type)(operator_conv<adapter>()); }
-
-#define EVG_CXX_CAST_EXPLICIT_REDIRECT(type) explicit operator type () const { return operator_conv<type>(); }
-#define EVG_CXX_CAST_EXPLICIT_ADAPT_REDIRECT(type, adapter) explicit operator type () const { return (type)(operator_conv<adapter>()); }
-
-#define conv(var, type) var.operator type()
-#define inheritFR(member, func, ret) ret func() { return member.func() } // Inherit from function from a member that has a return value
-#define inheritFV(member, func) void func() { member.func() }
+#define EVG_UNDEFINED_VIRTUAL_FUNCTION { logError("Undefined virtual function called!"); throw std::runtime_error("Undefined virtual function called!"); }
 
 
-
-
-
-#ifndef EVG_DISABLE_RETERROR
-#define EVG_RET_ERRORT Error
-#define EVG_RET_ERROR(val) return val;
-#else
-#define EVG_RET_ERRORT void
-#define EVG_RET_ERROR(val) throw 
-#endif
 
 namespace evg
 {
@@ -54,6 +16,7 @@ namespace evg
 		class InvalidType;
 
 		// Class for use in conditional inheritance
+		template <size_t index>
 		class Empty {};
 
 		// Platform defined integer aliases
@@ -116,13 +79,6 @@ namespace evg
 		using SFloat128 = InvalidType;
 		using UFloat128 = InvalidType;
 
-		// Bool aliases
-		using Bool = bool;
-		using Bool8 = Bool;
-		using Bool16 = InvalidType;
-		using Bool32 = InvalidType;
-		using Bool64 = InvalidType;
-
 		namespace fast
 		{
 			using Int = Int;
@@ -170,17 +126,23 @@ namespace evg
 
 		using UChar = unsigned char;
 		using SChar = signed char;
-#define Char char
+//#define char char
 #define CChar const char
+
+#if defined(EVG_COMPILER_MSVC)
 #define WChar wchar_t
 #define CWChar const wchar_t
+#else
+#define WChar char16_t
+#define CWChar const char16_t
+#endif
 
-		enum class Byte : Char {};
+		enum class Byte : char {};
 		using Size = uint_least64_t;
 		using Offset = int_least64_t;
 		using PtrNum = uintptr_t;
 		using PtrDiff = ptrdiff_t;
-		using binary_rep(hexadecimal) Hash = Size;
+		using Hash = Size;
 		using Pid = UInt64;
 
 
@@ -196,84 +158,23 @@ namespace evg
 
 
 		using VoidFn = void(*)();
-		void nop() {} // Global "nop" function
+		void nop() {} // Corresponds to "nop" x86 instruction
 
-		using EnumVal = int;
-
-		template <typename T>
-		using SharedPtr = std::shared_ptr<T>;
+		void nopDeleter(void*) {}
 
 		template <typename T>
-		using UniquePtr = std::unique_ptr<T>;
+		using SPtr = std::shared_ptr<T>;
 
-		using Time = UInt64; // Nanoseconds
+		template <typename T>
+		using UPtr = std::unique_ptr<T>;
 
-		/*
-
-		// Virtual function
-		enum
-		{
-			direct,
-			virtual
-		};
-
-		// Encoding
-		enum
-		{
-			hexadecimal,
-			ascii,
-			utf8,
-			ebcdic
-		}
-
-		// Automatic threading policy
-		enum
-		{
-			sync,
-			async
-		};
-
-		// Atomicity
-		enum
-		{
-			nonatomic,
-			atomoic
-		};
-
-		enum
-		{
-			aliasing,
-			nonaliasing
-		};
-
-		enum
-		{
-			const, // Variable cannot be changed ever
-
-		}
-
-		enum
-		{
-			owning, // Caller is allowed to modify resource
-			viewing // Points to a resource that cannot be modified by *this* function
-		};
-
-		anyone can modify - mutable
-		i cannot modify - viewing
-		you cannot modify - owning
-		no one can modify - immutable
-
-
-
-
-
-		*/
+		using Time = std::chrono::high_resolution_clock::time_point;
+		using Clock = std::chrono::high_resolution_clock;
+		using UtcTime = std::chrono::system_clock::time_point; // Unix time (std::chrono::utc_time is not done yet)
+		using UtcClock = std::chrono::system_clock;
 	};
 
 	using namespace types;
-
-	template<typename T>
-	using Atomic = std::atomic<T>;
 };
 
 using namespace evg::types;
