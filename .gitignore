@@ -42,3 +42,6 @@ vcpkg_installed
 #*.vcxproj.*
 Debug
 x64
+
+# Finder
+.DS_Store

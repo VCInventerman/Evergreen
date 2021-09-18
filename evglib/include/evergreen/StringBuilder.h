@@ -108,13 +108,13 @@ namespace evg
 
 		void ensureNullTerminated()
 		{
-			if (data_.sizeReserved() > data_.size())
+			if (data_.sizeReserved() > data_.size() + 1)
 			{
 				*end() = '\0';
 			}
 			else
 			{
-				data_.reserve(data_.size() + 1);
+				data_.reserve(data_.size() + 2);
 				*end() = '\0';
 			}
 		}

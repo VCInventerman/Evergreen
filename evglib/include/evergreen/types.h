@@ -172,6 +172,7 @@ namespace evg
 		using Clock = std::chrono::high_resolution_clock;
 		using UtcTime = std::chrono::system_clock::time_point; // Unix time (std::chrono::utc_time is not done yet)
 		using UtcClock = std::chrono::system_clock;
+
 	};
 
 	using namespace types;

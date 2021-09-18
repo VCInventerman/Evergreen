@@ -8,38 +8,7 @@ namespace evg
 	// Cascading hirearchy of configuration files
 	// Each file is a collection of either scalars (String, Int), or a map (list is a map indexed by numbers)
 	// Supported types: String, Number, bool, Null, Map, List
-
-	constexpr char Separator = '.';
-
-	/*class ConfigElement
-	{
-	public:
-		virtual void emit() = 0;
-
-		template
-	};
-
-
-
-	class ConfigList
-	{
-	public:
-
-		std::list<
-
-		void emit()
-		{
-
-		}
-
-
-
-	};
-	*/
-
-
-
-
+	// Smaller priorities are read first
 
 	class Configuration
 	{
@@ -136,6 +105,11 @@ namespace evg
 
 				for (std::vector<StringView>::iterator level = levels.begin() + 1; (level != levels.end()) && (failed != true); ++level) // Descend through each level in the levels list
 				{
+					if (itr == currentRootJson.cend())
+					{
+						return {};
+					}
+
 					json::iterator search = itr->find(level->view());
 
 					if (search == itr->end())
@@ -248,6 +222,11 @@ namespace evg
 
 				for (std::vector<StringView>::iterator level = levels.begin() + 1; (level != levels.end()) && (failed != true); ++level) // Descend through each level in the levels list
 				{
+					if (itr == currentRootJson.cend())
+					{
+						return {};
+					}
+
 					json::iterator search = itr->find(level->view());
 
 					if (search == itr->end())
@@ -362,6 +341,10 @@ namespace evg
 void evgInitConfig(evg::String programName, evg::SemVer version)
 {
 	using namespace evg;
+
+#if defined(EVG_DEFAULT_CONFIG)
+	pconf.roots.insert({ 80, {"default", EVG_DEFAULT_CONFIG} });
+#endif
 
 	pconf.stringEval = StringEvalEngine::defaultEval;
 

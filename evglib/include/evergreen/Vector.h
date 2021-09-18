@@ -29,7 +29,7 @@ namespace evg
 		using const_reverse_iterator = RevRandomContigIterator<const T>;
 
 
-		constexpr static Size SMALLEST_RESERVE = 32;
+		constexpr static Size SMALLEST_RESERVE = 64;
 
 	protected: // Access is discouraged
 		ContiguousBufPtrEnd<T> data_;
@@ -45,10 +45,10 @@ namespace evg
 		{
 			if (_copy)
 			{
-				T* mem = allocator.allocate(_data.size());
+				T* mem = allocator.allocate(_data.size() + 1);
 				std::copy(_data.cbegin(), _data.cend(), mem);
 				data_ = ContiguousBufPtrEnd(mem, _data.size());
-				reserved_ = data_.end_;
+				reserved_ = data_.end_ + 1;
 			}
 			else // Move ownership
 			{
@@ -130,9 +130,10 @@ namespace evg
 				throw std::bad_alloc();
 			}
 
-			if (_size + 2 > sizeReserved())
+			if (_size > sizeReserved())
 			{
 				Size newSize = std::max(((_size < 32) * SMALLEST_RESERVE), _size * 4) + 1;
+				
 				if (newSize <= sizeReserved())
 				{
 					debugBreak();

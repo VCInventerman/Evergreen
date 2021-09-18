@@ -516,8 +516,10 @@ namespace evg
 
 
 
+#if 0
 	// Iterate over the contents of a file
 	// Does not support concurrency: todo: boost strand
+	// todo: posix aiocb is awful, dont use
 	class IterFile
 	{
 	public:
@@ -717,14 +719,23 @@ namespace evg
 
 		IterFile(const Path _path, const Permission _perm = Permission::Read) : path(std::move(_path)), perm(_perm)
 		{
+#ifdef EVG_PLATFORM_LINUX
 			buf = (char*)mmap(0, bufSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_UNINITIALIZED, -1, 0);
+#else
+			buf = (char*)mmap(0, bufSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#endif
 
 			if (buf == nullptr)
 			{
 				debugBreak();
 			}
 
+#ifdef EVG_PLATFORM_LINUX
 			int flags = (Int)perm | O_LARGEFILE;
+#else
+			int flags = (Int)perm;
+#endif
+
 			file = open(path.data(), flags);
 
 			struct stat st;
@@ -775,4 +786,5 @@ namespace evg
 
 
 	};
+#endif
 }

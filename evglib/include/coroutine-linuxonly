@@ -1,0 +1,10 @@
+// This does not work
+/*
+#if __has_include(<coroutine>)
+#include_next <coroutine>
+#endif
+*/
+
+#if !defined(__clang__)
+#include <coroutine>
+#endif

@@ -35,18 +35,18 @@ namespace evg
 
 	// Basic format-string: Assemble a String from all of the provided slices
 	template<typename ... Ts>
-	StringBuilder f(Ts const& ... args)
+	StringBuilder& f(Ts const& ... args)
 	{
 		const Size count = sizeof...(args);
-
-		if constexpr (count == 0)
-		{
-			return {};
-		}
 
 		thread_local StringBuilder retStore;
 		StringBuilder& ret = retStore;
 		ret.clear();
+
+		if constexpr (count == 0)
+		{
+			return ret;
+		}
 
 		// This block is only used when f() does not keep a thread_local storage
 		/*Size potentialSize = (([&]

@@ -111,6 +111,7 @@ namespace evg
 				working.push_back(std::thread(runWorkerThread, &context));
 			}
 
+			/*
 			for (auto i : Range(DEFAULT_BLOCKING_THREAD_CAP))
 			{
 				blocking.push_back(std::thread(runWorkerThread, &context));
@@ -125,6 +126,7 @@ namespace evg
 				pthread_setschedparam(blocking.back().native_handle(), policy, &sch);
 #endif
 			}
+			 */
 
 
 		}

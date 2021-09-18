@@ -10,7 +10,14 @@
 #define _UNICODE
 #define _WIN32_WINNT 0x0601
 
+#elif defined(__APPLE__)
+#define EVG_PLATFORM_APPLE
+#define EVG_PLATFORM_POSIX
+#elif defined(__linux__)
+#define EVG_PLATFORM_LINUX
+#define EVG_PLATFORM_POSIX
 
+/*
 #elif defined(__unix__)
 
 #if defined(__linux__)
@@ -25,7 +32,7 @@
 #define EVG_TARGET_OSX
 #else
 #error "Unknown Unix platform"
-#endif
+#endif*/
 
 
 #else

@@ -23,5 +23,4 @@ template <typename ElmT, typename ... Ts>
 bool isAnyOf(const ElmT& elm, Ts... args)
 {
 	return (((elm == args) || ...));
-
 }
