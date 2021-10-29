@@ -56,11 +56,17 @@
 #include <boost/asio/execution.hpp>
 #include <boost/asio.hpp>
 #include <boost/circular_buffer.hpp>
+
+#ifdef EVG_LIB_BEAST
 #include <boost/beast.hpp>
+#endif
 
 #if __has_include(<openssl/conf.h>)
 #include <boost/asio/ssl.hpp>
+
+#ifdef EVG_LIB_BEAST
 #include <boost/beast/ssl.hpp>
+#endif
 #endif
 
 #include <boost/uuid/uuid.hpp>
@@ -134,10 +140,11 @@ namespace evg { using Uuid = boost::uuids::uuid; };
 
 #ifdef EVG_PLATFORM_POSIX
 //#include <aio.h>
-#include <linux/aio_abi.h>
-#include <sys/mman.h>
+
 
 #ifdef EVG_PLATFORM_LINUX
+#include <linux/aio_abi.h>
+#include <sys/mman.h>
 #include <linux/mman.h>
 #endif
 
