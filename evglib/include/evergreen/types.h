@@ -168,7 +168,7 @@ namespace evg
 		template <typename T>
 		using UPtr = std::unique_ptr<T>;
 
-		using Time = std::chrono::high_resolution_clock::time_point;
+		using Time = std::chrono::high_resolution_clock::time_point; // Underlying type on MSVC is Int64
 		using Clock = std::chrono::high_resolution_clock;
 		using UtcTime = std::chrono::system_clock::time_point; // Unix time (std::chrono::utc_time is not done yet)
 		using UtcClock = std::chrono::system_clock;

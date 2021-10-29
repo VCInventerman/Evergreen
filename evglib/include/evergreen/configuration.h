@@ -274,6 +274,7 @@ namespace evg
 						}
 						catch (const std::exception& error)
 						{
+							std::cout << error.what() << '\n';
 							debugBreak();
 						}
 					}

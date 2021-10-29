@@ -1,13 +1,13 @@
 #pragma once
 
-#define EVG_DISABLE_RETERROR
-#define EVG_LIB_ZLIB
-#define EVG_LIB_BOOST
-#define EVG_LIB_LOG
-//#define EVG_LIB_LLVM
-//#define EVG_LIB_DISCORD
-#define EVG_LIB_JSON_NLOHMANN
-#define EVG_COMPILE_AOT
+// #define EVG_DISABLE_RETERROR
+// #define EVG_LIB_ZLIB
+// #define EVG_LIB_BOOST
+// #define EVG_LIB_LOG
+// #define EVG_LIB_LLVM
+// #define EVG_LIB_DISCORD
+// #define EVG_LIB_JSON_NLOHMANN
+// #define EVG_COMPILE_AOT
 
 #include "evergreen/preprocessor.h"
 #include "evergreen/libraries.h"

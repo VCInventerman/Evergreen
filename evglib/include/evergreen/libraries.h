@@ -76,6 +76,7 @@
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/lexical_cast.hpp>
