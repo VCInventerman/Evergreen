@@ -1,5 +1,7 @@
 #pragma once
 
+#include <coroutine.h>
+
 namespace evg
 {
 	class GroupSignal

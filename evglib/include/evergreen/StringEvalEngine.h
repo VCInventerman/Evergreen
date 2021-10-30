@@ -139,7 +139,7 @@ namespace evg
 
 		}
 	};
-#else defined(EVG_LIB_V8)
+#else // !defined(EVG_LIB_V8)
 	// Object that can evaluate strings as JS code
 	class StringEvalEngine
 	{

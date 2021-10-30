@@ -245,7 +245,11 @@ namespace evg
 		//BOOST_LOG_SEV(thisProgram.log, (boost::log::trivial::severity_level)sev) << f(args...);
 		//BOOST_LOG_STREAM_WITH_PARAMS((thisProgram.log), (boost::log::keywords::severity = (sev)));// ((<< args) ...);
 
+#ifdef EVG_LIB_LOG
 		BOOST_LOG_SEV(thisProgram.log, sev) << f(args...);
+#else
+		std::cout << f(args...);
+#endif
 
 		//if (thisProgram.logM.try_lock_for(boost::chrono::seconds(5)))
 		//{
@@ -426,7 +430,9 @@ namespace evg
 		SDL_SetMainReady();
 #endif
 
+#ifdef EVG_LIB_BOOST
 		evg::threads.init();
+#endif
 
 #ifdef EVG_LIB_V8
 		evg::StringEvalEngine::initV8();
@@ -434,6 +440,9 @@ namespace evg
 
 		evgInitConfig(programName, evg::SemVer(version));
 
+
+
+#ifdef EVG_LIB_BOOST_LOG
 		// Get a pointer to the global logging core
 		boost::shared_ptr<boost::log::core> core = boost::log::core::get();
 
@@ -586,6 +595,7 @@ namespace evg
 		{
 
 		}
+#endif // defined(EVG_LIB_BOOST_LOG)
 
 		evg::logInfo(programName, ' ', version);
 	}

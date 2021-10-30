@@ -25,29 +25,10 @@
 #include <boost/asio/detail/push_options.hpp>
 */
 
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/sinks/debug_output_backend.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/common.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
-#include <boost/log/sinks/text_file_backend.hpp>
-#include <boost/log/utility/manipulators/add_value.hpp>
-
-#include <boost/thread/locks.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
-//#include <boost/interprocess/sync/upgradable_lock.hpp>
-
 //#include <boost/asio.hpp>
 
 #if defined(EVG_PLATFORM_WIN)
+#include <boost/asio/detail/config.hpp>
 #define private public // look, i really needed access to the HANDLE in io_context
 #include <boost/asio/io_context.hpp>
 #undef private
@@ -69,10 +50,7 @@
 #endif
 #endif
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid_generators.hpp>
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -85,19 +63,47 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/random_generator.hpp>
-
-namespace evg { using Uuid = boost::uuids::uuid; };
-
 
 #if defined(EVG_COMPILER_GCC) || defined(EVG_COMPILER_CLANG)
 #pragma GCC diagnostic pop
 #endif
 
 #endif
+
+
+// Required
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/locks.hpp>
+
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/sinks/debug_output_backend.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/common.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/utility/manipulators/add_value.hpp>
+
+#include <boost/asio/high_resolution_timer.hpp>
+
+namespace evg { using Uuid = boost::uuids::uuid; };
+
+
+
 
 #ifdef EVG_PLATFORM_WIN
 //#define NOMINMAX

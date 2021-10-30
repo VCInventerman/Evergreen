@@ -74,7 +74,7 @@ namespace evg
 
 	//BOOST_LOG_ATTRIBUTE_KEYWORD(severityK, "Severity", ::evg::LogSeverity)
 
-
+#ifdef EVG_LIB_BOOST_LOG
 	template<typename CharT, typename TraitsT>
 	std::basic_ostream<CharT, TraitsT>& operator<< (std::basic_ostream<CharT, TraitsT>& stream, evg::LogSeverity& sev)
 	{
@@ -127,11 +127,13 @@ namespace evg
 
 		return stream;
 	}
+#endif
 
 };
 
+#ifdef EVG_LIB_BOOST_LOG
 BOOST_LOG_ATTRIBUTE_KEYWORD(logSevKeyword, "Severity", evg::LogSeverity)
-
+#endif
 
 
 namespace evg

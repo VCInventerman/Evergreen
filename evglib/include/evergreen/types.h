@@ -1,10 +1,8 @@
 #pragma once
 
-
+#include <mutex>
 
 #define EVG_UNDEFINED_VIRTUAL_FUNCTION { logError("Undefined virtual function called!"); throw std::runtime_error("Undefined virtual function called!"); }
-
-
 
 namespace evg
 {

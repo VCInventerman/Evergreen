@@ -359,7 +359,7 @@ void evgInitConfig(evg::String programName, evg::SemVer version)
 		{
 			json readConf = json::parse(file.begin(), file.end());
 
-			pconf.roots.insert({ 20, {"admin", std::move(readConf)} });
+			pconf.roots.insert({ 20, {"admin", {std::move(readConf)} } });
 		}
 	}
 
@@ -375,7 +375,7 @@ void evgInitConfig(evg::String programName, evg::SemVer version)
 		{
 			json readConf = json::parse(file.begin(), file.end());
 
-			pconf.roots.insert({ 40, {"user", std::move(readConf) } });
+			pconf.roots.insert({ 40, {"user", {std::move(readConf)} } });
 		}
 	}
 
@@ -389,7 +389,7 @@ void evgInitConfig(evg::String programName, evg::SemVer version)
 		{
 			json readConf = json::parse(file.begin(), file.end());
 
-			pconf.roots.insert({ 60, {"local", std::move(readConf)} });
+			pconf.roots.insert({ 60, {"local", {std::move(readConf)} } });
 		}
 	}
 

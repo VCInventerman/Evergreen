@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/thread/shared_mutex.hpp>
+
 #include "evergreen/types.h"
 //#include "evergreen/common/alloc.h"
 #include "evergreen/StringView.h"
@@ -430,7 +432,7 @@ namespace evg
 			std::copy(rhs.cbegin(), rhs.cend(), mem + this->size());
 			mem[this->size() + rhs.size() + 1] = '\0';
 
-			*this = This(StringViewHashBase<CharT>(mem, this->size() + rhs.size()), [mem]() {delete mem; });
+			*this = This(StringViewHashBase<CharT>(mem, this->size() + rhs.size()), [mem]() {delete[] mem; });
 
 			return *this;
 		}
@@ -447,7 +449,7 @@ namespace evg
 					c = sub;
 			}
 
-			*this = This(StringViewHashBase<CharT>(mem, size()), [mem]() {delete mem; });
+			*this = This(StringViewHashBase<CharT>(mem, size()), [mem]() {delete[] mem; });
 
 			return *this;
 		}

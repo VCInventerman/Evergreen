@@ -193,6 +193,7 @@ namespace evg
 		{
 			string_ += rhs.string_;
 			resetWin32();
+			return *this;
 		}
 
 		/*template<typename T>
@@ -363,7 +364,6 @@ namespace evg
 		try
 		{
 			std::ifstream file(path.native(), std::ifstream::binary | std::ifstream::ate);
-			auto n = file.tellg();
 			std::vector<char> vec(file.tellg());
 			file.seekg(0);
 			file.read(vec.data(), vec.size());

@@ -2,17 +2,17 @@
 
 // #define EVG_DISABLE_RETERROR
 // #define EVG_LIB_ZLIB
-// #define EVG_LIB_BOOST
-// #define EVG_LIB_LOG
+#define EVG_LIB_BOOST //todo: make this not required
+// #define EVG_LIB_BOOST_LOG
 // #define EVG_LIB_LLVM
 // #define EVG_LIB_DISCORD
-// #define EVG_LIB_JSON_NLOHMANN
-// #define EVG_COMPILE_AOT
+#define EVG_LIB_JSON_NLOHMANN
+#define EVG_COMPILE_AOT
 
 #include "evergreen/preprocessor.h"
 #include "evergreen/libraries.h"
 #include "evergreen/cppstd.h"
-#include "evergreen/types.h" // No C++ libraries can be included after this point because a number of preprocessor macros in types.h will interfere
+#include "evergreen/types.h"
 
 #ifdef EVG_LIB_BOOST
 #include "evergreen/thread.h"

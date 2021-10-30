@@ -189,7 +189,7 @@ namespace evg
 
 		if (ret.second == 1)
 		{
-			return { *c, 1 };
+			return { *((const unsigned char*)c), 1 };
 		}
 		else if ((ret.second == 2) && (maxSize >= 2))
 		{
