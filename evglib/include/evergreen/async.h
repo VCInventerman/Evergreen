@@ -1,6 +1,26 @@
 #pragma once
 
+#if __has_include(<coroutine>)
 #include <coroutine>
+#elif __has_include(<coroutine.h>)
+#include <coroutine.h>
+#elif __has_include(<experimental/coroutine.h>)
+#include <experimental/coroutine.h>
+#else
+#include <evergreen/coroutine.h>
+
+// Alternate way to get coroutine
+/*
+namespace std
+{
+	using ::std::experimental::coroutine_traits;
+	using ::std::experimental::coroutine_handle;
+	using ::std::experimental::suspend_always;
+	using ::std::experimental::suspend_never;
+};
+*/
+
+#endif
 
 namespace evg
 {

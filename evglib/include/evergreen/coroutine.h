@@ -1,7 +1,5 @@
 #pragma once
 
-#if 0
-
 namespace std
 {
 
@@ -235,5 +233,3 @@ namespace std
     };
 
 }
-
-#endif
